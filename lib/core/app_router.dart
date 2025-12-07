@@ -5,6 +5,8 @@ import 'package:investorapp_eminates/features/auth/screens/signup_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/dashboard_screen.dart';
 import 'package:investorapp_eminates/features/onboarding/screens/onboarding_screen.dart';
 import 'package:investorapp_eminates/features/request_details/request_details_screen.dart';
+import 'package:investorapp_eminates/features/onboarding/screens/plan_details_screen.dart';
+import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Placeholder classes removed to use imported implementations
@@ -54,6 +56,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/change-password',
         builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: '/plan-details',
+        builder: (context, state) {
+          final plan = state.extra as InvestmentPlan;
+          return PlanDetailsScreen(plan: plan);
+        },
       ),
     ],
     redirect: (context, state) {
