@@ -51,8 +51,18 @@ class RequestDetailsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           if (isAdmin) _buildAdminActions(context, ref, request),
           const SizedBox(height: 24),
+          
+          // Payment Information Section (New)
+          if (request.transactionUtr != null || request.status == 'Investment Confirmed')
+            _buildSection(context, 'Payment Information', [
+              _buildDetailRow('Status', request.status),
+              _buildDetailRow('UTR / Transaction ID', request.transactionUtr ?? 'N/A'),
+              _buildDetailRow('Payment Date', _formatDate(request.transactionDate)),
+            ]),
+
           _buildSection(context, 'Personal Information', [
             _buildDetailRow('Full Name', request.fullName),
+            // ... existing fields remains same
             _buildDetailRow('Father\'s Name', request.fatherName),
             _buildDetailRow('Mother\'s Name', request.motherName),
             _buildDetailRow('DOB', _formatDate(request.dob)),
@@ -64,6 +74,7 @@ class RequestDetailsScreen extends ConsumerWidget {
             _buildDetailRow('Gender', request.gender),
             _buildDetailRow('Marital Status', request.maritalStatus),
           ]),
+          // ... rest of sections
           _buildSection(context, 'Residential Address', [
             _buildDetailRow('Door/Flat No', request.addressDoorNo),
             _buildDetailRow('Street/Area', request.addressStreet),
@@ -114,6 +125,19 @@ class RequestDetailsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  // ... (Header Widget remains same, skipping for brevity in replacement if not modified, but I need to modify AdminActions)
+
+  // Wait, I need to update _buildAdminActions separately or include it.
+  // Let's rely on the replace tool's context. I replaced _buildContent which calls _buildAdminActions.
+  // But _buildAdminActions is defined further down. I should have replaced the whole admin actions widget too.
+  // I will make a SECOND chunk for _buildAdminActions to add the Confirm button.
+  
+  // Actually, I can do it in one go if I include it, but the file is large.
+  // I'll do _buildContent first, then _buildAdminActions in another call or same call different chunk.
+  
+  // Let's replace _buildAdminActions specifically.
+
 
   Widget _buildHeader(BuildContext context, WidgetRef ref, InvestorRequest request, bool isAdmin) {
     return Card(
@@ -221,29 +245,37 @@ class RequestDetailsScreen extends ConsumerWidget {
           children: [
             Text('Admin Actions', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
-            Row(
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
               children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: request.status == 'Approved'
-                        ? null
-                        : () => _updateStatus(context, ref, request.id!, 'Approved'),
+                if (request.status == 'Pending') ...[
+                  FilledButton.icon(
+                    onPressed: () => _updateStatus(context, ref, request.id!, 'Approved'),
                     icon: const Icon(Icons.check),
                     label: const Text('Approve'),
                     style: FilledButton.styleFrom(backgroundColor: Colors.green),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: request.status == 'Rejected'
-                        ? null
-                        : () => _updateStatus(context, ref, request.id!, 'Rejected'),
+                  FilledButton.icon(
+                    onPressed: () => _updateStatus(context, ref, request.id!, 'Rejected'),
                     icon: const Icon(Icons.close),
                     label: const Text('Reject'),
                     style: FilledButton.styleFrom(backgroundColor: Colors.red),
                   ),
-                ),
+                ],
+                if (request.status == 'UTR Submitted' || (request.status == 'Approved' && request.transactionUtr != null))
+                  FilledButton.icon(
+                    onPressed: () => _updateStatus(context, ref, request.id!, 'Investment Confirmed'),
+                    icon: const Icon(Icons.verified_user),
+                    label: const Text('Confirm Investment'),
+                    style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+                  ),
+                if (request.status == 'Investment Confirmed')
+                   FilledButton.icon(
+                    onPressed: () => context.push('/payout-history/${request.id}'),
+                    icon: const Icon(Icons.history),
+                    label: const Text('Payouts'),
+                  ),
               ],
             ),
           ],

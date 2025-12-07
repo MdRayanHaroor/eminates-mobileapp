@@ -52,22 +52,76 @@ class AdminDashboardScreen extends ConsumerWidget {
                     final request = requests[index];
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
-                        title: Text(request.investorId ?? 'Pending ID'),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(request.fullName ?? 'Unknown Name'),
-                            Text(
-                              'Submitted: ${_formatDate(request.createdAt)}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
+                      child: InkWell(
+                        onTap: () => context.push('/request/${request.id}'),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    request.investorId ?? 'Pending ID',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey[600]),
+                                  ),
+                                  _buildStatusChip(request.status),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                request.fullName ?? 'Unknown Name',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                request.planName,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '₹${request.parsedAmount.toStringAsFixed(0)}',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: Colors.green[700],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatDate(request.createdAt),
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              if (request.status == 'UTR Submitted') ...[
+                                 const SizedBox(height: 8),
+                                 Container(
+                                   padding: const EdgeInsets.all(8),
+                                   decoration: BoxDecoration(
+                                     color: Colors.orange.withOpacity(0.1),
+                                     borderRadius: BorderRadius.circular(6),
+                                     border: Border.all(color: Colors.orange.shade300),
+                                   ),
+                                   child: Row(
+                                     children: [
+                                       Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange[800]),
+                                       const SizedBox(width: 8),
+                                       Expanded(
+                                         child: Text(
+                                           'Verify payment received and confirm investment',
+                                           style: TextStyle(fontSize: 12, color: Colors.orange[900]),
+                                         ),
+                                       ),
+                                     ],
+                                   ),
+                                 ),
+                              ],
+                            ],
+                          ),
                         ),
-                        trailing: _buildStatusChip(request.status),
-                        onTap: () {
-                          context.push('/request/${request.id}');
-                        },
                       ),
                     );
                   },
@@ -86,10 +140,16 @@ class AdminDashboardScreen extends ConsumerWidget {
     Color color;
     switch (status.toLowerCase()) {
       case 'approved':
-        color = Colors.green;
+        color = Colors.blue; 
         break;
       case 'rejected':
         color = Colors.red;
+        break;
+      case 'utr submitted':
+        color = Colors.purple; 
+        break;
+      case 'investment confirmed':
+        color = Colors.green;
         break;
       default:
         color = Colors.orange;
@@ -103,11 +163,11 @@ class AdminDashboardScreen extends ConsumerWidget {
         border: Border.all(color: color),
       ),
       child: Text(
-        status,
+        status.toUpperCase(),
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 10,
         ),
       ),
     );

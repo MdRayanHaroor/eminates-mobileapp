@@ -63,6 +63,10 @@ class InvestorRequest {
   final DateTime? declarationDate;
   final bool isConfirmed;
   
+  // Transaction Details (Post-Acceptance)
+  final String? transactionUtr;
+  final DateTime? transactionDate;
+  
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -114,9 +118,25 @@ class InvestorRequest {
     this.declarationPlace,
     this.declarationDate,
     this.isConfirmed = false,
+    this.transactionUtr,
+    this.transactionDate,
     this.createdAt,
     this.updatedAt,
   });
+
+  // Helper getters
+  String get planName {
+    if (investmentAmount == null) return 'Investment Plan';
+    final parts = investmentAmount!.split('–');
+    return parts.length > 1 ? parts[1].trim() : parts[0].trim();
+  }
+
+  double get parsedAmount {
+    if (investmentAmount == null) return 0;
+    final parts = investmentAmount!.split('–');
+    final amtStr = parts[0].replaceAll(RegExp(r'[^\d.]'), '');
+    return double.tryParse(amtStr) ?? 0;
+  }
 
   factory InvestorRequest.fromJson(Map<String, dynamic> json) {
     return InvestorRequest(
@@ -167,6 +187,8 @@ class InvestorRequest {
       declarationPlace: json['declaration_place'] as String?,
       declarationDate: json['declaration_date'] != null ? DateTime.tryParse(json['declaration_date']) : null,
       isConfirmed: json['is_confirmed'] as bool? ?? false,
+      transactionUtr: json['transaction_utr'] as String?,
+      transactionDate: json['transaction_date'] != null ? DateTime.tryParse(json['transaction_date']) : null,
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
     );
@@ -221,6 +243,8 @@ class InvestorRequest {
       'declaration_place': declarationPlace,
       'declaration_date': declarationDate?.toIso8601String().split('T')[0],
       'is_confirmed': isConfirmed,
+      'transaction_utr': transactionUtr,
+      'transaction_date': transactionDate?.toIso8601String(),
     };
   }
 }

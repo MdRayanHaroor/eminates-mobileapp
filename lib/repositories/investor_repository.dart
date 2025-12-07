@@ -1,4 +1,5 @@
 import 'package:investorapp_eminates/models/investor_request.dart';
+import 'package:investorapp_eminates/models/payout.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class InvestorRepository {
@@ -75,5 +76,32 @@ class InvestorRepository {
         .from('investor_requests')
         .delete()
         .eq('id', id);
+  }
+
+  // --- Post-Acceptance Methods ---
+
+  Future<void> submitUtr(String requestId, String utr) async {
+    await _supabase
+        .from('investor_requests')
+        .update({
+          'transaction_utr': utr,
+          'transaction_date': DateTime.now().toIso8601String(),
+          'status': 'UTR Submitted', // Update status logic handled here or implicitly
+        })
+        .eq('id', requestId);
+  }
+
+  Future<List<Payout>> getPayouts(String requestId) async {
+    final response = await _supabase
+        .from('payouts')
+        .select()
+        .eq('request_id', requestId)
+        .order('payment_date', ascending: false);
+
+    return (response as List).map((e) => Payout.fromJson(e)).toList();
+  }
+
+  Future<void> addPayout(Payout payout) async {
+    await _supabase.from('payouts').insert(payout.toJson());
   }
 }

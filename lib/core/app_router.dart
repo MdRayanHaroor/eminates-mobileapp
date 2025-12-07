@@ -7,6 +7,12 @@ import 'package:investorapp_eminates/features/onboarding/screens/onboarding_scre
 import 'package:investorapp_eminates/features/request_details/request_details_screen.dart';
 import 'package:investorapp_eminates/features/onboarding/screens/plan_details_screen.dart';
 import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
+import 'package:investorapp_eminates/features/investment/screens/submit_utr_screen.dart';
+import 'package:investorapp_eminates/features/investment/screens/investment_dashboard_screen.dart';
+import 'package:investorapp_eminates/features/investment/screens/payout_history_screen.dart';
+import 'package:investorapp_eminates/features/investment/screens/investment_documents_screen.dart';
+import 'package:investorapp_eminates/features/plans/plans_screen.dart';
+import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Placeholder classes removed to use imported implementations
@@ -63,6 +69,38 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final plan = state.extra as InvestmentPlan;
           return PlanDetailsScreen(plan: plan);
         },
+      ),
+      GoRoute(
+        path: '/submit-utr/:id',
+        builder: (context, state) {
+           final id = state.pathParameters['id']!;
+           return SubmitUtrScreen(requestId: id);
+        },
+      ),
+      GoRoute(
+        path: '/investment-dashboard',
+        builder: (context, state) {
+          final request = state.extra as InvestorRequest;
+          return InvestmentDashboardScreen(request: request);
+        },
+      ),
+      GoRoute(
+        path: '/payout-history/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return PayoutHistoryScreen(requestId: id);
+        },
+      ),
+      GoRoute(
+        path: '/investment-documents',
+        builder: (context, state) {
+           final request = state.extra as InvestorRequest;
+           return InvestmentDocumentsScreen(request: request);
+        },
+      ),
+      GoRoute(
+        path: '/plans',
+        builder: (context, state) => const PlansScreen(),
       ),
     ],
     redirect: (context, state) {
