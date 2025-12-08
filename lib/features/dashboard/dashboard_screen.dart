@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
 import 'package:investorapp_eminates/features/dashboard/admin_dashboard_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/providers/dashboard_provider.dart';
+import 'package:investorapp_eminates/features/dashboard/providers/notification_provider.dart';
 import 'package:investorapp_eminates/features/onboarding/providers/onboarding_provider.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:intl/intl.dart';
@@ -50,6 +51,21 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
+          Consumer(
+            builder: (context, ref, child) {
+              final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
+              final count = unreadCountAsync.valueOrNull ?? 0;
+
+              return IconButton(
+                icon: Badge(
+                  isLabelVisible: count > 0,
+                  label: Text('$count'),
+                  child: const Icon(Icons.notifications),
+                ),
+                onPressed: () => context.push('/notifications'),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {

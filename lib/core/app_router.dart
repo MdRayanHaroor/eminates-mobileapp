@@ -12,6 +12,7 @@ import 'package:investorapp_eminates/features/investment/screens/investment_dash
 import 'package:investorapp_eminates/features/investment/screens/payout_history_screen.dart';
 import 'package:investorapp_eminates/features/investment/screens/investment_documents_screen.dart';
 import 'package:investorapp_eminates/features/plans/plans_screen.dart';
+import 'package:investorapp_eminates/features/dashboard/notifications_screen.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -97,6 +98,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
            final request = state.extra as InvestorRequest;
            return InvestmentDocumentsScreen(request: request);
         },
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/plans',
