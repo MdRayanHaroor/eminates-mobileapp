@@ -49,7 +49,8 @@ class RequestDetailsScreen extends ConsumerWidget {
         children: [
           _buildHeader(context, ref, request, isAdmin),
           const SizedBox(height: 24),
-          if (isAdmin) _buildAdminActions(context, ref, request),
+          if (isAdmin && (request.status == 'Pending' || request.status == 'UTR Submitted' || request.status == 'Investment Confirmed' || (request.status == 'Approved' && request.transactionUtr != null)))
+             _buildAdminActions(context, ref, request),
           const SizedBox(height: 24),
           
           // Payment Information Section (New)

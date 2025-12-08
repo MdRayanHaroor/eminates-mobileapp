@@ -18,6 +18,25 @@ class _SubmitUtrScreenState extends ConsumerState<SubmitUtrScreen> {
   final _controller = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  Map<String, dynamic> _bankDetails = {
+    "bank_name": "Loading...",
+    "account_holder": "",
+    "account_number": "",
+    "ifsc_code": ""
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBankDetails();
+  }
+
+  Future<void> _loadBankDetails() async {
+    final details = await ref.read(investorRepositoryProvider).getAppSetting('bank_details');
+    if (details != null && mounted) {
+      setState(() => _bankDetails = details);
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -113,13 +132,13 @@ class _SubmitUtrScreenState extends ConsumerState<SubmitUtrScreen> {
                               ],
                             ),
                             const Divider(height: 24),
-                            _buildDetailRow('Bank Name', 'HDFC Bank'),
+                            _buildDetailRow('Bank Name', _bankDetails['bank_name'] ?? 'N/A'),
                             const SizedBox(height: 8),
-                            _buildDetailRow('Account Holder', 'Eminates Investment'),
+                            _buildDetailRow('Account Holder', _bankDetails['account_holder'] ?? 'N/A'),
                             const SizedBox(height: 8),
-                            _buildDetailRow('Account Number', '50200012345678'),
+                            _buildDetailRow('Account Number', _bankDetails['account_number'] ?? 'N/A'),
                             const SizedBox(height: 8),
-                            _buildDetailRow('IFSC Code', 'HDFC0001234'),
+                            _buildDetailRow('IFSC Code', _bankDetails['ifsc_code'] ?? 'N/A'),
                           ],
                         ),
                       ),

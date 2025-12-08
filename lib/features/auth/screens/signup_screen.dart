@@ -35,15 +35,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         );
         context.go('/login');
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(ErrorUtils.getFriendlyErrorMessage(e)),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      } catch (e) {
+        debugPrint('Signup Error: $e'); // Print to console
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: $e'), // Show raw error to user
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 10),
+            ),
+          );
+        }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

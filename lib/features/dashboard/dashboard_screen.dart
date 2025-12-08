@@ -66,6 +66,18 @@ class DashboardScreen extends ConsumerWidget {
               );
             },
           ),
+          Consumer(
+            builder: (context, ref, child) {
+              final isAdmin = ref.watch(isAdminProvider).valueOrNull ?? false;
+              if (isAdmin) {
+                return IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => context.push('/admin-settings'),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {

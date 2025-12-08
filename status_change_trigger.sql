@@ -54,7 +54,7 @@ BEGIN
     
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create Trigger
 DROP TRIGGER IF EXISTS on_request_status_change ON public.investor_requests;

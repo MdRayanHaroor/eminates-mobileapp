@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
+import 'package:investorapp_eminates/features/dashboard/providers/dashboard_provider.dart';
 import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
 
 class PlansScreen extends ConsumerStatefulWidget {
@@ -14,58 +15,35 @@ class PlansScreen extends ConsumerStatefulWidget {
 class _PlansScreenState extends ConsumerState<PlansScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.85);
   int _currentPage = 0;
+  List<InvestmentPlan> _plans = [];
+  bool _isLoading = true;
 
-  final List<InvestmentPlan> _plans = [
-    const InvestmentPlan(
-      name: 'Silver Plan',
-      amountWithSymbol: '₹3,00,000',
-      tenure: '3 years',
-      payout: 'Quarterly',
-      roi: 'Approx 24% annual',
-      roiPercentage: 24.0,
-      tenureYears: 3.0,
-      payoutFrequencyMonths: 3,
-    ),
-    const InvestmentPlan(
-      name: 'Gold Plan',
-      amountWithSymbol: '₹5,00,000',
-      tenure: '6 years',
-      payout: 'Half-yearly',
-      roi: '~30%',
-      roiPercentage: 30.0,
-      tenureYears: 6.0,
-      payoutFrequencyMonths: 6,
-    ),
-    const InvestmentPlan(
-      name: 'Platinum Plan',
-      amountWithSymbol: '₹10,00,000',
-      tenure: '6 years',
-      payout: 'Yearly',
-      roi: '~36%',
-      roiPercentage: 36.0,
-      tenureYears: 6.0,
-      payoutFrequencyMonths: 12,
-    ),
-    const InvestmentPlan(
-      name: 'Elite Plan',
-      amountWithSymbol: 'Custom',
-      tenure: '5–7 years',
-      payout: 'Yearly/Agreement',
-      roi: 'Custom',
-      description: 'For HNI investors',
-      isCustom: true,
-      minAmount: 2500000,
-      roiPercentage: 36.0,
-      tenureYears: 5.0,
-      payoutFrequencyMonths: 12,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadPlans();
+  }
+
+  Future<void> _loadPlans() async {
+    try {
+      final planData = await ref.read(investorRepositoryProvider).getInvestmentPlans();
+      setState(() {
+        _plans = planData.map((e) => InvestmentPlan.fromJson(e)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading plans: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Investment Plans')),
-      body: Column(
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator()) 
+        : Column(
         children: [
           const SizedBox(height: 24),
           const Padding(
@@ -239,9 +217,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                           padding: const EdgeInsets.only(top: 12.0),
                           child: TextButton.icon(
                             onPressed: () {
-                               ScaffoldMessenger.of(context).showSnackBar(
-                                 const SnackBar(content: Text('Edit Plan feature coming soon!')),
-                               );
+                               context.push('/edit-plan', extra: plan).then((_) => _loadPlans()); // Reload on return
                             },
                             icon: Icon(Icons.edit, size: 16, color: Colors.grey[600]),
                             label: Text('Edit Plan', style: TextStyle(color: Colors.grey[600])),

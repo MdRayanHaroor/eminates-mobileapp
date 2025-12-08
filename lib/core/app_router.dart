@@ -12,6 +12,8 @@ import 'package:investorapp_eminates/features/investment/screens/investment_dash
 import 'package:investorapp_eminates/features/investment/screens/payout_history_screen.dart';
 import 'package:investorapp_eminates/features/investment/screens/investment_documents_screen.dart';
 import 'package:investorapp_eminates/features/plans/plans_screen.dart';
+import 'package:investorapp_eminates/features/plans/edit_plan_screen.dart';
+import 'package:investorapp_eminates/features/dashboard/admin_settings_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/notifications_screen.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -107,22 +109,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/plans',
         builder: (context, state) => const PlansScreen(),
       ),
+      GoRoute(
+        path: '/edit-plan',
+        builder: (context, state) {
+          final plan = state.extra as InvestmentPlan;
+          return EditPlanScreen(plan: plan);
+        },
+      ),
+      GoRoute(
+        path: '/admin-settings',
+        builder: (context, state) => const AdminSettingsScreen(),
+      ),
     ],
     redirect: (context, state) {
       final session = supabase.auth.currentSession;
       final loggingIn = state.uri.toString() == '/login' || state.uri.toString() == '/signup';
       final changingPassword = state.uri.toString() == '/change-password';
 
-      // If we are in recovery mode (detected by event listener above, but we can't easily pass it here without a provider)
-      // However, usually when passwordRecovery happens, the user is logged in with a temporary session.
-      // We can check if the URL contains `type=recovery` if it was a deep link, but Supabase handles that.
-      
-      // Let's rely on a query parameter or just the fact that we want to go there.
-      // But wait, how do we know to go to /change-password?
-      // The `onAuthStateChange` listener above sets a local var, but `redirect` is a callback.
-      // We should probably use a Notifier for the router that includes this state.
-      
-      // Simpler hack: If we are logged in and the route is /change-password, allow it.
+      // 1. Handle Deep Links (prevent GoException)
+      if (state.uri.scheme == 'io.supabase.app' || state.uri.scheme == 'io.supabase.investorapp') {
+        // Allow Supabase SDK to handle the auth exchange
+        // Redirect to login (if no session) or dashboard (if session found)
+        return session != null ? '/dashboard' : '/login';
+      }
+
+      // 2. Normal Routing
       if (session != null && changingPassword) return null;
 
       if (session == null && !loggingIn && !changingPassword) return '/login';

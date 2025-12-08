@@ -1,5 +1,6 @@
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:investorapp_eminates/models/payout.dart';
+import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class InvestorRepository {
@@ -103,5 +104,49 @@ class InvestorRepository {
 
   Future<void> addPayout(Payout payout) async {
     await _supabase.from('payouts').insert(payout.toJson());
+  }
+
+  // --- Dynamic Content Methods ---
+
+  Future<List<dynamic>> getInvestmentPlans() async {
+    final response = await _supabase
+        .from('investment_plans')
+        .select()
+        .eq('is_active', true)
+        .order('min_amount', ascending: true);
+    return response as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>?> getAppSetting(String key) async {
+    try {
+      final response = await _supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', key)
+          .single();
+      return response['value'] as Map<String, dynamic>?;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> updateInvestmentPlan(InvestmentPlan plan) async {
+    // Only update editable fields
+    await _supabase.from('investment_plans').update({
+      'min_amount': plan.minAmount,
+      'max_amount': plan.maxAmount, // Assuming we added this to model, or we just map min/max
+      'roi_percentage': plan.roiPercentage,
+      'duration_months': (plan.tenureYears * 12).toInt(),
+      'features': plan.features,
+      'is_active': plan.isActive,
+    }).eq('id', plan.id!);
+  }
+
+  Future<void> saveAppSetting(String key, Map<String, dynamic> value) async {
+    await _supabase.from('app_settings').upsert({
+      'key': key,
+      'value': value,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
   }
 }
