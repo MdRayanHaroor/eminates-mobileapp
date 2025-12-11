@@ -26,8 +26,27 @@ BEGIN
           NEW.id,
           'user'
       );
+      
+      -- Welcome Notification for the User
+      INSERT INTO public.notifications (
+          user_id,
+          title,
+          message,
+          type,
+          related_entity_id,
+            related_entity_type,
+            is_read
+        ) VALUES (
+            NEW.id, -- Use auth.users ID which matches public.users ID
+            'Welcome to Eminates',
+            'Welcome to the Eminates family! We are glad to have you on board.',
+            'info',
+            NEW.id,
+            'user',
+            false
+        );
   EXCEPTION WHEN OTHERS THEN
-      RAISE WARNING 'Failed to notify admins on signup: %', SQLERRM;
+      RAISE WARNING 'Failed to notify on signup: %', SQLERRM;
   END;
 
   RETURN NEW;

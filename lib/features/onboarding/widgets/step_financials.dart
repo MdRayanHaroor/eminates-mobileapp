@@ -69,6 +69,18 @@ class _StepFinancialsState extends ConsumerState<StepFinancials> {
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingFormProvider);
 
+    const relationships = ['Father', 'Mother', 'Sibling', 'Spouse', 'Child', 'Other'];
+    String? selectedRelationship;
+    if (_nomineeRelController.text.isNotEmpty) {
+      try {
+        selectedRelationship = relationships.firstWhere(
+          (element) => element.toLowerCase() == _nomineeRelController.text.toLowerCase(),
+        );
+      } catch (e) {
+        selectedRelationship = null;
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -125,9 +137,9 @@ class _StepFinancialsState extends ConsumerState<StepFinancials> {
         TextFormField(controller: _nomineeNameController, decoration: const InputDecoration(labelText: 'Nominee Full Name *')),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _nomineeRelController.text.isEmpty ? null : _nomineeRelController.text,
+          value: selectedRelationship,
           decoration: const InputDecoration(labelText: 'Relationship *'),
-          items: ['Father', 'Mother', 'Sibling', 'Spouse', 'Child', 'Other'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: relationships.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
           onChanged: (val) {
             if (val != null) {
               _nomineeRelController.text = val;

@@ -20,7 +20,7 @@ BEGIN
             notification_type := 'success';
         ELSIF NEW.status = 'Rejected' THEN
             notification_title := 'Request Rejected';
-            notification_body := 'Your investment request was not approved. Please contact support for details.';
+            notification_body := 'Your investment request was rejected. Reason: ' || COALESCE(NEW.rejection_reason, 'Not specified') || '. Please edit the details and submit again.';
             notification_type := 'error';
         ELSIF NEW.status = 'Investment Confirmed' THEN
             notification_title := 'Investment Confirmed';

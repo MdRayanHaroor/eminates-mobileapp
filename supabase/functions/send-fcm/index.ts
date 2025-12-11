@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts";
+import { Resend } from "https://esm.sh/resend";
 
 console.log("Hello from send-fcm!");
 
@@ -98,56 +99,123 @@ serve(async (req) => {
         const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-        // Fetch FCM Tokens
-        const { data: tokens, error } = await supabase
-            .from("user_fcm_tokens")
-            .select("fcm_token")
-            .eq("user_id", user_id);
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
-        if (error || !tokens || tokens.length === 0) {
+        // Helper to determine sender email
+        const getSenderEmail = (title: string): string => {
+            const lowerTitle = title.toLowerCase();
+            if (lowerTitle.includes("welcome")) {
+                return "hello@eminates.com";
+            } else if (
+                lowerTitle.includes("new user signup") ||
+                lowerTitle.includes("new investment request") ||
+                lowerTitle.includes("utr submitted")
+            ) {
+                return "support@eminates.com";
+            } else {
+                return "admin@eminates.com";
+            }
+        };
+
+        const resendFromEmail = getSenderEmail(title);
+
+        console.log(`Determined Sender: ${resendFromEmail} for Title: "${title}"`);
+
+        // Parallel Fetch: FCM Tokens & User Email
+        const [tokensResult, userResult] = await Promise.all([
+            supabase
+                .from("user_fcm_tokens")
+                .select("fcm_token")
+                .eq("user_id", user_id),
+            supabase.auth.admin.getUserById(user_id)
+        ]);
+
+        console.log("Tokens Result:", tokensResult);
+        console.log("User Result:", userResult);
+
+        const tokens = tokensResult.data;
+        const tokensError = tokensResult.error;
+        const user = userResult.data?.user;
+        const userError = userResult.error;
+
+        if (tokensError) console.error("Error fetching tokens:", tokensError);
+        if (userError) console.error("Error fetching user:", userError);
+
+        const promises = [];
+
+        // 1. Initialize FCM Promises
+        if (tokens && tokens.length > 0) {
+            console.log(`Found ${tokens.length} FCM tokens for user ${user_id}`);
+            const serviceAccountStr = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
+
+            if (serviceAccountStr) {
+                const serviceAccount = JSON.parse(serviceAccountStr);
+                // We get the access token once to reuse
+                const accessTokenPromise = getAccessToken(serviceAccount).then(accessToken => {
+                    const projectId = serviceAccount.project_id;
+                    return tokens.map(async (t) => {
+                        const message = {
+                            message: {
+                                token: t.fcm_token,
+                                notification: {
+                                    title: title,
+                                    body: body,
+                                },
+                                data: data || {},
+                            },
+                        };
+
+                        const res = await fetch(
+                            `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${accessToken}`,
+                                },
+                                body: JSON.stringify(message),
+                            }
+                        );
+                        return res.json();
+                    });
+                });
+
+                promises.push(accessTokenPromise.then(p => Promise.all(p)));
+            } else {
+                console.error("Missing FIREBASE_SERVICE_ACCOUNT environment variable");
+            }
+        } else {
             console.log(`No tokens found for user ${user_id}`);
-            return new Response(JSON.stringify({ message: "No tokens found" }), {
-                headers: { "Content-Type": "application/json" },
-            });
         }
 
-        const serviceAccountStr = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
-        if (!serviceAccountStr) {
-            throw new Error("Missing FIREBASE_SERVICE_ACCOUNT environment variable");
-        }
+        // 2. Initialize Resend Email Promise
+        if (resendApiKey && user && user.email) {
+            const resend = new Resend(resendApiKey);
+            console.log(`Sending email to ${user.email} from ${resendFromEmail}`);
 
-        const serviceAccount = JSON.parse(serviceAccountStr);
-        const accessToken = await getAccessToken(serviceAccount);
-        const projectId = serviceAccount.project_id;
-
-        const results = await Promise.all(
-            tokens.map(async (t) => {
-                const message = {
-                    message: {
-                        token: t.fcm_token,
-                        notification: {
-                            title: title,
-                            body: body,
-                        },
-                        data: data || {},
-                    },
-                };
-
-                const res = await fetch(
-                    `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${accessToken}`,
-                        },
-                        body: JSON.stringify(message),
-                    }
-                );
-
-                return res.json();
+            const emailPromise = resend.emails.send({
+                from: resendFromEmail,
+                to: user.email,
+                subject: title,
+                html: `<p>${body}</p>`
             })
-        );
+                .then(data => {
+                    console.log("Email sent successfully:", data);
+                    return { type: 'email', result: data };
+                })
+                .catch(err => {
+                    console.error("Error sending email:", err);
+                    return { type: 'email', error: err };
+                });
+
+            promises.push(emailPromise);
+        } else {
+            if (!resendApiKey) console.log("RESEND_API_KEY not set, skipping email.");
+            else if (!user || !user.email) console.log(`User ${user_id} has no email, skipping email.`);
+        }
+
+        // Wait for all notifications (FCM & Email)
+        const results = await Promise.all(promises);
 
         return new Response(JSON.stringify(results), {
             headers: { "Content-Type": "application/json" },

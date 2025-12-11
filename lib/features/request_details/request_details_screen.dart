@@ -165,7 +165,7 @@ class RequestDetailsScreen extends ConsumerWidget {
                 _buildStatusChip(request.status),
               ],
             ),
-            if (!isAdmin && request.status.toLowerCase() == 'pending') ...[
+            if (!isAdmin && (request.status.toLowerCase() == 'pending' || request.status.toLowerCase() == 'rejected')) ...[
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -258,7 +258,38 @@ class RequestDetailsScreen extends ConsumerWidget {
                     style: FilledButton.styleFrom(backgroundColor: Colors.green),
                   ),
                   FilledButton.icon(
-                    onPressed: () => _updateStatus(context, ref, request.id!, 'Rejected'),
+                    onPressed: () async {
+                      final reasonController = TextEditingController();
+                      final reason = await showDialog<String>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Reject Request'),
+                          content: TextField(
+                            controller: reasonController,
+                            decoration: const InputDecoration(
+                              labelText: 'Rejection Reason',
+                              hintText: 'Enter reason for rejection',
+                            ),
+                            maxLines: 3,
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, reasonController.text),
+                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                              child: const Text('Reject'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (reason != null && reason.isNotEmpty) {
+                        _updateStatus(context, ref, request.id!, 'Rejected', reason: reason);
+                      }
+                    },
                     icon: const Icon(Icons.close),
                     label: const Text('Reject'),
                     style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -285,9 +316,9 @@ class RequestDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _updateStatus(BuildContext context, WidgetRef ref, String id, String status) async {
+  Future<void> _updateStatus(BuildContext context, WidgetRef ref, String id, String status, {String? reason}) async {
     try {
-      await ref.read(investorRepositoryProvider).updateRequestStatus(id, status);
+      await ref.read(investorRepositoryProvider).updateRequestStatus(id, status, reason: reason);
       ref.invalidate(investorRequestDetailsProvider(id));
       ref.invalidate(allRequestsProvider); // Refresh admin list
       if (context.mounted) {

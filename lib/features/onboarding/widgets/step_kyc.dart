@@ -188,7 +188,7 @@ class _StepKycState extends ConsumerState<StepKyc> {
             validator: (value) {
               if (value == null || value.isEmpty) return 'PAN is required';
               final panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
-              if (!panRegex.hasMatch(value)) return 'Invalid PAN format';
+              if (!panRegex.hasMatch(value)) return 'Invalid PAN Number';
               return null;
             },
             onChanged: (value) {

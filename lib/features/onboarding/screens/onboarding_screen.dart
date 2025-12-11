@@ -58,7 +58,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
       case 1: // KYC
         if ((state.panNumber ?? '').isEmpty) return _showError(context, 'PAN Number is required');
-        if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(state.panNumber ?? '')) return _showError(context, 'Invalid PAN format');
+        if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(state.panNumber ?? '')) return _showError(context, 'Invalid PAN Number');
 
         if ((state.aadhaarNumber ?? '').isEmpty) return _showError(context, 'Aadhaar Number is required');
         if (!RegExp(r'^[0-9]{12}$').hasMatch(state.aadhaarNumber ?? '')) return _showError(context, 'Invalid Aadhaar (12 digits)');

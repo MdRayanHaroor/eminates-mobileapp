@@ -46,6 +46,25 @@ BEGIN
             NEW.id,
             'investor_request'
         );
+
+        -- Notify User (Request Received)
+        INSERT INTO public.notifications (
+            user_id,
+            title,
+            message,
+            type,
+            related_entity_id,
+            related_entity_type,
+            is_read
+        ) VALUES (
+            NEW.user_id,
+            'Request Received',
+            'Your investment request has been submitted successfully and is currently under review.',
+            'info',
+            NEW.id,
+            'investment_request',
+            false
+        );
     EXCEPTION WHEN OTHERS THEN
         -- Prevent blocking the transaction on notification error
         RAISE WARNING 'Error in handle_new_request_for_admin: %', SQLERRM;
@@ -88,27 +107,7 @@ AFTER UPDATE ON public.investor_requests
 FOR EACH ROW
 EXECUTE FUNCTION handle_utr_submission_for_admin();
 
--- Trigger: New User Signup
-CREATE OR REPLACE FUNCTION handle_new_user_signup_for_admin()
-RETURNS TRIGGER AS $$
-BEGIN
-    BEGIN
-        PERFORM notify_all_admins(
-            'New User Signup',
-            'A new user has signed up.',
-            'info',
-            NEW.id,
-            'user'
-        );
-    EXCEPTION WHEN OTHERS THEN
-         RAISE WARNING 'Error in handle_new_user_signup_for_admin: %', SQLERRM;
-    END;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- Trigger: New User Signup (MOVED TO ensure_user_sync.sql)
+-- We drop this trigger to verify there are no duplicates.
 DROP TRIGGER IF EXISTS on_new_user_signup_admin ON public.users;
-CREATE TRIGGER on_new_user_signup_admin
-AFTER INSERT ON public.users
-FOR EACH ROW
-EXECUTE FUNCTION handle_new_user_signup_for_admin();
+DROP FUNCTION IF EXISTS handle_new_user_signup_for_admin();

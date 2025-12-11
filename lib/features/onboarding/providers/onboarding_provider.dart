@@ -456,8 +456,60 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
 
   Future<void> submitForm(WidgetRef ref) async {
     if (state.id != null && state.id!.isNotEmpty) {
-      await ref.read(investorRepositoryProvider).updateRequest(state);
-      // Invalidate the specific request details provider to force a refresh
+      // Explicitly set status to Pending for resubmission
+      final resubmissionState = InvestorRequest(
+         id: state.id,
+         investorId: state.investorId,
+         createdAt: state.createdAt,
+         updatedAt: DateTime.now(), // Fixed: Pass DateTime object, not String
+         userId: state.userId,
+         status: 'Pending', // RESET STATUS
+         fullName: state.fullName,
+         fatherName: state.fatherName,
+         motherName: state.motherName,
+         dob: state.dob,
+         nationality: state.nationality,
+         nativePlace: state.nativePlace,
+         education: state.education,
+         occupation: state.occupation,
+         monthlyIncome: state.monthlyIncome,
+         gender: state.gender,
+         maritalStatus: state.maritalStatus,
+         addressDoorNo: state.addressDoorNo,
+         addressStreet: state.addressStreet,
+         addressCity: state.addressCity,
+         addressDistrict: state.addressDistrict,
+         addressState: state.addressState,
+         addressPincode: state.addressPincode,
+         addressLandmark: state.addressLandmark,
+         primaryMobile: state.primaryMobile,
+         alternateMobile: state.alternateMobile,
+         whatsappNumber: state.whatsappNumber,
+         emailAddress: state.emailAddress,
+         panNumber: state.panNumber,
+         aadhaarNumber: state.aadhaarNumber,
+         voterId: state.voterId,
+         passportNumber: state.passportNumber,
+         panCardUrl: state.panCardUrl,
+         aadhaarCardUrl: state.aadhaarCardUrl,
+         selfieUrl: state.selfieUrl,
+         bankName: state.bankName,
+         accountHolderName: state.accountHolderName,
+         accountNumber: state.accountNumber,
+         ifscCode: state.ifscCode,
+         branchNameLocation: state.branchNameLocation,
+         nomineeName: state.nomineeName,
+         nomineeRelationship: state.nomineeRelationship,
+         nomineeDob: state.nomineeDob,
+         nomineeContact: state.nomineeContact,
+         nomineeAddress: state.nomineeAddress,
+         investmentAmount: state.investmentAmount,
+         declarationPlace: state.declarationPlace,
+         declarationDate: state.declarationDate,
+         isConfirmed: state.isConfirmed,
+      );
+
+      await ref.read(investorRepositoryProvider).updateRequest(resubmissionState);
       // We need to import request_details_screen.dart or move the provider to a shared location.
       // However, since we can't easily move it right now without refactoring, 
       // we can use the fact that we are in the same package.

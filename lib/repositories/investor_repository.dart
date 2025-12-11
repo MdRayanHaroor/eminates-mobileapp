@@ -42,10 +42,15 @@ class InvestorRepository {
     await _supabase.from('investor_requests').insert(request.toJson());
   }
 
-  Future<void> updateRequestStatus(String id, String status) async {
+  Future<void> updateRequestStatus(String id, String status, {String? reason}) async {
+    final data = {'status': status};
+    if (reason != null) {
+      data['rejection_reason'] = reason;
+    }
+    
     await _supabase
         .from('investor_requests')
-        .update({'status': status})
+        .update(data)
         .eq('id', id);
   }
 
