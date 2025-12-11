@@ -16,6 +16,9 @@ import 'package:investorapp_eminates/features/plans/edit_plan_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/admin_settings_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/notifications_screen.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
+import 'package:investorapp_eminates/features/agents/agents_screen.dart';
+import 'package:investorapp_eminates/features/agents/create_agent_screen.dart';
+import 'package:investorapp_eminates/features/onboarding/screens/referral_entry_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Placeholder classes removed to use imported implementations
@@ -110,6 +113,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const PlansScreen(),
       ),
       GoRoute(
+        path: '/enter-referral',
+        builder: (context, state) => const ReferralEntryScreen(),
+      ),
+      GoRoute(
         path: '/edit-plan',
         builder: (context, state) {
           final plan = state.extra as InvestmentPlan;
@@ -117,9 +124,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/agents',
+        builder: (context, state) => const AgentsScreen(),
+      ),
+      GoRoute(
+        path: '/create-agent',
+        builder: (context, state) => const CreateAgentScreen(),
+      ),
+      GoRoute(
         path: '/admin-settings',
         builder: (context, state) => const AdminSettingsScreen(),
       ),
+
     ],
     redirect: (context, state) {
       final session = supabase.auth.currentSession;

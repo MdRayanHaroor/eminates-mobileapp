@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
 import 'package:investorapp_eminates/features/dashboard/providers/dashboard_provider.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:intl/intl.dart';
@@ -10,27 +11,123 @@ class AdminDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
     final allRequestsAsync = ref.watch(allRequestsProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Admin Dashboard',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Admin Dashboard'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
                     ),
-              ),
-            ],
+                    FilledButton(
+                      onPressed: () async {
+                        Navigator.pop(context); // Close dialog
+                        await ref.read(authRepositoryProvider).signOut();
+                        if (context.mounted) context.go('/login');
+                      },
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: const Text('Admin'),
+              accountEmail: Text(user?.email ?? ''),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Text(
+                  (user?.email ?? 'A')[0].toUpperCase(),
+                  style: TextStyle(fontSize: 24.0, color: Theme.of(context).primaryColor),
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dashboard),
+              title: const Text('Dashboard'),
+              onTap: () => context.pop(), // Close drawer (already here)
+            ),
+            ListTile(
+              leading: const Icon(Icons.explore),
+              title: const Text('Plans'),
+              onTap: () {
+                context.pop(); 
+                context.push('/plans');
+              },
+            ),
+             ListTile(
+              leading: const Icon(Icons.people_alt),
+              title: const Text('Agents'),
+              onTap: () {
+                context.pop(); 
+                context.push('/agents');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                context.pop(); 
+                context.push('/admin-settings');
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                  context.pop();
+                  await ref.read(authRepositoryProvider).signOut();
+                  if (context.mounted) context.go('/login');
+              },
+            ),
+          ],
         ),
-        Expanded(
-          child: allRequestsAsync.when(
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           // Remove the duplicate title row since we have AppBar now
+           /*
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Admin Dashboard',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          */
+          Expanded(
+            child: allRequestsAsync.when(
             data: (requests) {
               if (requests.isEmpty) {
                 return RefreshIndicator(
@@ -133,6 +230,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           ),
         ),
       ],
+    ),
     );
   }
 

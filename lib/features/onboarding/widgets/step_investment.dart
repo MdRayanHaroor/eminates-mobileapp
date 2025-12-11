@@ -18,48 +18,56 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   final List<InvestmentPlan> _plans = [
     const InvestmentPlan(
       name: 'Silver Plan',
-      amountWithSymbol: '₹3,00,000',
+      amountWithSymbol: 'Up to ₹3,00,000',
       tenure: '3 years',
       payout: 'Quarterly',
       roi: 'Approx 24% annual',
       roiPercentage: 24.0,
       tenureYears: 3.0,
       payoutFrequencyMonths: 3,
+      minAmount: 100000,
+      maxAmount: 300000,
     ),
     const InvestmentPlan(
       name: 'Gold Plan',
-      amountWithSymbol: '₹5,00,000',
+      amountWithSymbol: 'Up to ₹5,00,000',
       tenure: '6 years',
       payout: 'Half-yearly',
       roi: '~30%',
       roiPercentage: 30.0,
       tenureYears: 6.0,
       payoutFrequencyMonths: 6,
+      minAmount: 300001,
+      maxAmount: 500000,
     ),
     const InvestmentPlan(
       name: 'Platinum Plan',
-      amountWithSymbol: '₹10,00,000',
+      amountWithSymbol: 'Up to ₹10,00,000',
       tenure: '6 years',
       payout: 'Yearly',
       roi: '~36%',
       roiPercentage: 36.0,
       tenureYears: 6.0,
       payoutFrequencyMonths: 12,
+      minAmount: 500001,
+      maxAmount: 1000000,
     ),
     const InvestmentPlan(
       name: 'Elite Plan',
-      amountWithSymbol: 'Custom',
+      amountWithSymbol: 'Above ₹10,00,000',
       tenure: '5–7 years',
       payout: 'Yearly/Agreement',
       roi: 'Custom',
       description: 'For HNI investors',
       isCustom: true,
-      minAmount: 2500000,
-      roiPercentage: 36.0, // Base for calculation example
-      tenureYears: 5.0, // Base for calculation example
+      minAmount: 1000001,
+      roiPercentage: 36.0, 
+      tenureYears: 5.0,
       payoutFrequencyMonths: 12,
     ),
   ];
+
+  final FocusNode _amountFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -67,48 +75,65 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
     final state = ref.read(onboardingFormProvider);
     final currentAmount = state.investmentAmount;
     
+    // Default selection if none
+    if (_selectedPlanName == null) {
+       _selectedPlanName = _plans[0].name;
+    }
+
     if (currentAmount != null && currentAmount.isNotEmpty) {
-      // Try to match existing string to a plan
-      bool matched = false;
-      for (final plan in _plans) {
-        if (!plan.isCustom && currentAmount.contains(plan.name.split(' ')[0])) { // Simple heuristic match "Silver", "Gold"
-           _selectedPlanName = plan.name;
-           matched = true;
-           break;
-        }
-      }
-      
-      if (!matched) {
-        // Assume Elite/Custom if it doesn't match standard plans but has value
-        // Or check if it contains "Elite"
-        _selectedPlanName = 'Elite Plan';
-        // Extract numeric part if possible
-        final regex = RegExp(r'₹([\d,]+)');
-        final match = regex.firstMatch(currentAmount);
-        if (match != null) {
-          _customAmountController.text = match.group(1)?.replaceAll(',', '') ?? '';
-        }
+      // First, try to extract numeric amount
+      final regex = RegExp(r'₹([\d,]+)');
+      final match = regex.firstMatch(currentAmount);
+      if (match != null) {
+        // If we have an amount, set it in controller
+        final cleanAmount = match.group(1)?.replaceAll(',', '') ?? '';
+        _customAmountController.text = cleanAmount;
+        
+        // Match plan by logic if needed, but user wants NO smart switching
+        // So we just rely on name match if present
+        _matchPlanByName(currentAmount);
+      } else {
+        _matchPlanByName(currentAmount);
       }
     }
-    
-    _customAmountController.addListener(_onCustomAmountChanged);
+
+    _amountFocusNode.addListener(_onFocusChange);
+    _customAmountController.addListener(_onAmountChanged);
+  }
+
+  void _onFocusChange() {
+    if (_amountFocusNode.hasFocus) {
+       final currentPlan = _plans.firstWhere((p) => p.name == _selectedPlanName);
+       if (_customAmountController.text.isEmpty && currentPlan.minAmount != null) {
+          _customAmountController.text = currentPlan.minAmount!.toInt().toString();
+       }
+    }
+  }
+
+  void _matchPlanByName(String text) {
+     for (final plan in _plans) {
+        if (text.contains(plan.name.split(' ')[0])) {
+           _selectedPlanName = plan.name;
+           break;
+        }
+     }
   }
 
   @override
   void dispose() {
-    _customAmountController.removeListener(_onCustomAmountChanged);
+    _amountFocusNode.removeListener(_onFocusChange);
+    _amountFocusNode.dispose();
+    _customAmountController.removeListener(_onAmountChanged);
     _customAmountController.dispose();
     super.dispose();
   }
 
-  void _onCustomAmountChanged() {
-    if (_selectedPlanName == 'Elite Plan') {
-      final amount = _customAmountController.text;
-      if (amount.isNotEmpty) {
-        ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-          investmentAmount: '₹$amount – Elite Plan',
-        );
-      }
+  void _onAmountChanged() {
+    // Just update provider, NO switching
+    if (_selectedPlanName != null && _customAmountController.text.isNotEmpty) {
+       ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+          investmentAmount: '₹${_customAmountController.text} – $_selectedPlanName',
+       );
     }
   }
 
@@ -116,40 +141,15 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
     setState(() {
       _selectedPlanName = plan.name;
     });
-    
-    if (!plan.isCustom) {
-      ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-        investmentAmount: '${plan.amountWithSymbol} – ${plan.name}',
-      );
-      _customAmountController.clear();
-    } else {
-      if (_customAmountController.text.isNotEmpty) {
-         ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-          investmentAmount: '₹${_customAmountController.text} – ${plan.name}',
-        );
-      }
+    // Trigger update to set path correct
+    if (_customAmountController.text.isNotEmpty) {
+       _onAmountChanged();
     }
   }
 
   Future<void> _viewPlanDetails(InvestmentPlan plan) async {
     final result = await context.push('/plan-details', extra: plan);
-    if (result != null && result is String) {
-      // User selected this plan from details page
-      setState(() {
-        _selectedPlanName = plan.name;
-        if (plan.isCustom) {
-           // Extract amount from result "₹2500000 – Elite Plan"
-           final regex = RegExp(r'₹([\d,]+)');
-           final match = regex.firstMatch(result);
-           if (match != null) {
-             _customAmountController.text = match.group(1)?.replaceAll(',', '') ?? '';
-           }
-        } else {
-          _customAmountController.clear();
-        }
-      });
-      ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(investmentAmount: result);
-    }
+    // Logic can remain for selection from details if required
   }
 
   @override
@@ -159,9 +159,16 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
       children: [
         Text('Section G: Investment Package', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
-        Text('Select the plan that suits you best.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
+        Text('Select a plan and enter the amount you wish to invest.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
         const SizedBox(height: 16),
         
+        // Always show Amount Input at top (or arguably inside the selected card, but top is cleaner for "drive by amount")
+        // User requested: "focus on the appropriate plan with amount already entered" implies input exists.
+        // "in investor plans screen in the plans cards show amount... submit should ... focus"
+        // Let's put the input field prominently at the top? 
+        // Or keep it inside the selected card as before, but ensure it's ALWAYS visible for the selected card?
+        // Let's keep it inside the selected card for context.
+
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -182,7 +189,6 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
                     width: isSelected ? 2 : 1,
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  // Use theme card color or surface color for background
                   color: isSelected 
                       ? Theme.of(context).primaryColor.withOpacity(0.05) 
                       : (isDarkMode ? Theme.of(context).cardColor : Colors.white),
@@ -210,12 +216,11 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
                             ],
                           ),
                         ),
-                        if (!plan.isCustom)
                         Text(
                           plan.amountWithSymbol,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 14,
                             color: Theme.of(context).primaryColor,
                           ),
                         ),
@@ -228,14 +233,20 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
                     _buildDetailRow(context, 'Payout', plan.payout),
                     _buildDetailRow(context, 'ROI', plan.roi),
                     
-                    if (plan.isCustom && isSelected) ...[
+                    if (isSelected) ...[
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _customAmountController,
-                        decoration: const InputDecoration(
-                          labelText: 'Investment Amount (Min ₹25,00,000)',
+                        focusNode: _amountFocusNode,
+                        decoration: InputDecoration(
+                          labelText: plan.name == 'Elite Plan' 
+                              ? 'Investment Amount above ₹${plan.minAmount?.toInt() ?? 0}'
+                              : (index > 0 
+                                  ? 'Investment Amount above ₹${_plans[index-1].maxAmount?.toInt() ?? 0}'
+                                  : 'Investment Amount (Min ₹${plan.minAmount?.toInt() ?? 0})'),
                           prefixText: '₹ ',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
+                          // helperText: 'Min: ₹${plan.minAmount?.toInt()} - Max: ₹${plan.maxAmount?.toInt() ?? "Unlimited"}',
                         ),
                         keyboardType: TextInputType.number,
                         autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -243,8 +254,12 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
                           if (value == null || value.isEmpty) return 'Enter amount';
                           final val = double.tryParse(value.replaceAll(',', ''));
                           if (val == null) return 'Invalid amount';
-                          if (val < plan.minAmount!) {
-                            return 'Min amount is ₹${plan.minAmount!.toStringAsFixed(0)}';
+                          
+                          if (plan.minAmount != null && val < plan.minAmount!) {
+                             return 'For ${plan.name} min and max amount is ₹${plan.minAmount!.toInt()} - ₹${plan.maxAmount?.toInt() ?? "Above"}';
+                          }
+                          if (plan.maxAmount != null && val > plan.maxAmount!) {
+                             return 'For ${plan.name} min and max amount is ₹${plan.minAmount!.toInt()} - ₹${plan.maxAmount!.toInt()}';
                           }
                           return null;
                         },

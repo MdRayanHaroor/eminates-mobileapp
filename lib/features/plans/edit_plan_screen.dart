@@ -17,6 +17,7 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _roiController;
   late TextEditingController _minAmountController;
+  late TextEditingController _maxAmountController;
   late TextEditingController _tenureController;
   bool _isLoading = false;
 
@@ -25,6 +26,7 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
     super.initState();
     _roiController = TextEditingController(text: widget.plan.roiPercentage.toString());
     _minAmountController = TextEditingController(text: widget.plan.minAmount?.toString() ?? '0');
+    _maxAmountController = TextEditingController(text: widget.plan.maxAmount?.toString() ?? '');
     _tenureController = TextEditingController(text: widget.plan.tenureYears.toString());
   }
 
@@ -32,6 +34,7 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
   void dispose() {
     _roiController.dispose();
     _minAmountController.dispose();
+    _maxAmountController.dispose();
     _tenureController.dispose();
     super.dispose();
   }
@@ -54,7 +57,7 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
         // Updated Values
         roiPercentage: double.parse(_roiController.text),
         minAmount: double.parse(_minAmountController.text),
-        maxAmount: widget.plan.maxAmount, // Keep existing max for now
+        maxAmount: _maxAmountController.text.isNotEmpty ? double.parse(_maxAmountController.text) : null,
         tenureYears: double.parse(_tenureController.text),
         payoutFrequencyMonths: widget.plan.payoutFrequencyMonths,
         features: widget.plan.features,
@@ -105,6 +108,12 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
                 decoration: const InputDecoration(labelText: 'Min Investment Amount', border: OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 validator: (val) => val!.isEmpty ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _maxAmountController,
+                decoration: const InputDecoration(labelText: 'Max Investment Amount (Optional)', border: OutlineInputBorder()),
+                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 24),
               SizedBox(

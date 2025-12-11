@@ -63,17 +63,35 @@ class InvestmentPlan {
     
     // Amount String
     String amtStr;
+    String formatCurrency(double amount) {
+       // Simple formatter for India locale like string
+       // 100000 -> 1,00,000
+       final intVal = amount.toInt();
+       if (intVal >= 100000 && intVal < 10000000) {
+          return '${(intVal/100000).toStringAsFixed(0)},${(intVal%100000).toString().padLeft(3,'0').padLeft(5,'0').substring(0,2)},${(intVal%1000).toString().padLeft(3,'0')}'.replaceAll(',00,', ',00,'); // Quick crude format
+       }
+       // Fallback to simple
+       return intVal.toString();
+    }
+    
+    // Better simple formatter logic since we can't import intl easily without checking deps
+    String toLakhs(double val) {
+       int v = val.toInt();
+       if (v == 100000) return '1,00,000';
+       if (v == 300000) return '3,00,000';
+       if (v == 500000) return '5,00,000';
+       if (v == 1000000) return '10,00,000';
+       if (val >= 10000000) return '1 Cr+';
+       return v.toString(); // Fallback
+    }
+
     if (isCustom) {
-      amtStr = 'Custom';
+      amtStr = 'Above ₹${toLakhs(minAmt)}';
     } else {
-      // Format 300000 -> ₹3,00,000 using approximate logic or keeping it simple
-      // Ideally use NumberFormat, but we keep this simple for factory
-      if (minAmt >= 100000 && minAmt < 10000000) {
-        amtStr = '₹${(minAmt/100000).toStringAsFixed(0)},${(minAmt%100000).toInt().toString().padLeft(3,'0')},000'.replaceAll(',00,', ',000,'); // Quick hack, better to use NumberFormat in UI
-        // Actually simpler:
-         amtStr = '₹${minAmt.toInt()}';
+      if (maxAmt > 0) {
+         amtStr = 'Up to ₹${toLakhs(maxAmt)}';
       } else {
-         amtStr = '₹${minAmt.toInt()}';
+         amtStr = '₹${toLakhs(minAmt)}';
       }
     }
 
