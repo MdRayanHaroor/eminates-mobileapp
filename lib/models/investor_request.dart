@@ -57,6 +57,7 @@ class InvestorRequest {
   
   // Section G: Investment Package
   final String? investmentAmount;
+  final String? planName;
   
   // Section H: Declaration
   final String? declarationPlace;
@@ -115,6 +116,7 @@ class InvestorRequest {
     this.nomineeContact,
     this.nomineeAddress,
     this.investmentAmount,
+    this.planName,
     this.declarationPlace,
     this.declarationDate,
     this.isConfirmed = false,
@@ -125,14 +127,21 @@ class InvestorRequest {
   });
 
   // Helper getters
-  String get planName {
+  // If planName is not set (legacy data), try to extract from investmentAmount if it follows the pattern
+  String get effectivePlanName {
+    if (planName != null && planName!.isNotEmpty) return planName!;
     if (investmentAmount == null) return 'Investment Plan';
     final parts = investmentAmount!.split('–');
-    return parts.length > 1 ? parts[1].trim() : parts[0].trim();
+    return parts.length > 1 ? parts[1].trim() : parts[0].trim(); // Fallback
   }
 
   double get parsedAmount {
     if (investmentAmount == null) return 0;
+    // Attempt to parse directly first
+    final directParse = double.tryParse(investmentAmount!.replaceAll(',', ''));
+    if (directParse != null) return directParse;
+    
+    // Fallback for legacy mixed string
     final parts = investmentAmount!.split('–');
     final amtStr = parts[0].replaceAll(RegExp(r'[^\d.]'), '');
     return double.tryParse(amtStr) ?? 0;
@@ -184,6 +193,7 @@ class InvestorRequest {
       nomineeContact: json['nominee_contact'] as String?,
       nomineeAddress: json['nominee_address'] as String?,
       investmentAmount: json['investment_amount'] as String?,
+      planName: json['plan_name'] as String?,
       declarationPlace: json['declaration_place'] as String?,
       declarationDate: json['declaration_date'] != null ? DateTime.tryParse(json['declaration_date']) : null,
       isConfirmed: json['is_confirmed'] as bool? ?? false,
@@ -240,6 +250,7 @@ class InvestorRequest {
       'nominee_contact': nomineeContact,
       'nominee_address': nomineeAddress,
       'investment_amount': investmentAmount,
+      'plan_name': planName,
       'declaration_place': declarationPlace,
       'declaration_date': declarationDate?.toIso8601String().split('T')[0],
       'is_confirmed': isConfirmed,

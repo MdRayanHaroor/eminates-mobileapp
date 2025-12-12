@@ -285,14 +285,22 @@ class DashboardScreen extends ConsumerWidget {
                               const SizedBox(height: 12),
                               
                               // Plan Name (Large)
-                              Text(
-                                request.planName,
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(request.status).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _getStatusColor(request.status).withOpacity(0.5)),
+                              ),
+                              child: Text(
+                                request.effectivePlanName,
+                                style: TextStyle(
+                                  color: _getStatusColor(request.status),
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 12,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              
+                            ),  
                               // Amount and Date
                               Row(
                                 children: [
@@ -394,23 +402,7 @@ class DashboardScreen extends ConsumerWidget {
 
 
   Widget _buildStatusChip(String status) {
-    Color color;
-    switch (status.toLowerCase()) {
-      case 'approved':
-        color = Colors.blue; // Action required
-        break;
-      case 'rejected':
-        color = Colors.red;
-        break;
-      case 'utr submitted':
-        color = Colors.purple;
-        break;
-      case 'investment confirmed':
-        color = Colors.green;
-        break;
-      default:
-        color = Colors.orange;
-    }
+    Color color = _getStatusColor(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -428,5 +420,20 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Colors.blue;
+      case 'rejected':
+        return Colors.red;
+      case 'utr submitted':
+        return Colors.purple;
+      case 'investment confirmed':
+        return Colors.green;
+      default:
+        return Colors.orange;
+    }
   }
 }

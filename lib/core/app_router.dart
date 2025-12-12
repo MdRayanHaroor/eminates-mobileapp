@@ -18,6 +18,9 @@ import 'package:investorapp_eminates/features/dashboard/notifications_screen.dar
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:investorapp_eminates/features/agents/agents_screen.dart';
 import 'package:investorapp_eminates/features/agents/create_agent_screen.dart';
+import 'package:investorapp_eminates/features/agents/screens/agent_referrals_screen.dart';
+import 'package:investorapp_eminates/features/agents/screens/agent_payouts_screen.dart';
+import 'package:investorapp_eminates/features/agents/agent_detail_screen.dart';
 import 'package:investorapp_eminates/features/onboarding/screens/referral_entry_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -27,6 +30,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:investorapp_eminates/core/utils/go_router_refresh_stream.dart';
 
 import 'package:investorapp_eminates/features/auth/screens/change_password_screen.dart';
+import 'package:investorapp_eminates/features/auth/screens/update_password_screen.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final supabase = Supabase.instance.client;
@@ -68,6 +72,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/change-password',
         builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: '/update-password',
+        builder: (context, state) => const UpdatePasswordScreen(),
       ),
       GoRoute(
         path: '/plan-details',
@@ -130,6 +138,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/create-agent',
         builder: (context, state) => const CreateAgentScreen(),
+      ),
+      GoRoute(
+        path: '/agent-detail/:id',
+        builder: (context, state) {
+           final id = state.pathParameters['id']!;
+           return AgentDetailScreen(agentId: id);
+        },
+      ),
+      GoRoute(
+        path: '/agent-referrals',
+        builder: (context, state) => const AgentReferralsScreen(),
+      ),
+      GoRoute(
+        path: '/agent-payouts',
+        builder: (context, state) => const AgentPayoutsScreen(),
       ),
       GoRoute(
         path: '/admin-settings',

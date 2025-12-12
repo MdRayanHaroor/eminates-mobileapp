@@ -131,8 +131,10 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   void _onAmountChanged() {
     // Just update provider, NO switching
     if (_selectedPlanName != null && _customAmountController.text.isNotEmpty) {
+       final cleanAmount = _customAmountController.text.replaceAll(',', '');
        ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-          investmentAmount: '₹${_customAmountController.text} – $_selectedPlanName',
+          investmentAmount: cleanAmount, // Store purely numeric string
+          planName: _selectedPlanName,
        );
     }
   }

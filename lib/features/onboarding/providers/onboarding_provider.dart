@@ -339,7 +339,7 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
     );
   }
 
-  void updateInvestmentDetails({String? investmentAmount}) {
+  void updateInvestmentDetails({String? investmentAmount, String? planName}) {
     state = InvestorRequest(
       id: state.id,
       investorId: state.investorId,
@@ -388,6 +388,7 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
       nomineeAddress: state.nomineeAddress,
       // Update Investment
       investmentAmount: investmentAmount ?? state.investmentAmount,
+      planName: planName ?? state.planName,
       // Preserve others
       declarationPlace: state.declarationPlace,
       declarationDate: state.declarationDate,
@@ -595,6 +596,7 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
       nomineeContact: state.nomineeContact,
       nomineeAddress: state.nomineeAddress,
       investmentAmount: state.investmentAmount,
+      planName: state.planName ?? 'Draft', // Default to Draft if not selected
       declarationPlace: state.declarationPlace,
       declarationDate: state.declarationDate,
       isConfirmed: state.isConfirmed,

@@ -39,29 +39,32 @@ final agentStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref
       .order('expires_at', ascending: false);
   final activeCodes = List<Map<String, dynamic>>.from(activeCodesResponse);
 
-  // 4. Calculate Commission
-  double totalInvested = 0;
+  // 4. Calculate Commission (Actually Earned Payouts)
+  double totalCommission = 0;
+  
   if (referredUsers.isNotEmpty) {
      final referredIds = referredUsers.map((u) => u['id']).toList();
+     
+     // Get Request IDs for these users
      final requestsResponse = await supabase
         .from('investor_requests')
-        .select('investment_amount') // Correct column name (Text)
-        .filter('user_id', 'in', referredIds)
-        .eq('status', 'Investment Confirmed');
-     
-     for (var r in requestsResponse) {
-       final rawAmount = r['investment_amount']?.toString() ?? '0';
-       // Extract digits and commas only (e.g. "₹10,00,000" -> "10,00,000")
-       // Then remove commas to parse.
-       // Handle cases like "₹10,00,000 - Platinum" or just "200000"
-       final numericString = rawAmount.replaceAll(RegExp(r'[^\d]'), ''); 
-       if (numericString.isNotEmpty) {
-           totalInvested += double.tryParse(numericString) ?? 0.0;
-       }
+        .select('id')
+        .filter('user_id', 'in', referredIds);
+        
+     final requestIds = (requestsResponse as List).map((r) => r['id']).toList();
+
+     if (requestIds.isNotEmpty) {
+        final payoutsResponse = await supabase
+            .from('payouts')
+            .select('amount')
+            .eq('type', 'Commission')
+            .filter('request_id', 'in', requestIds);
+        
+        for (var p in payoutsResponse) {
+           totalCommission += (p['amount'] as num).toDouble();
+        }
      }
   }
-
-  final totalCommission = totalInvested * (commissionPct / 100);
 
   return {
     'totalReferred': totalReferred,
@@ -133,6 +136,30 @@ class _AgentDashboardScreenState extends ConsumerState<AgentDashboardScreen> {
               title: const Text('Dashboard'),
               onTap: () => Navigator.pop(context), 
             ),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: const Text('My Referrals'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/agent-referrals');
+              },
+            ),
+             ListTile(
+              leading: const Icon(Icons.monetization_on),
+              title: const Text('Payouts'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/agent-payouts');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.lock_reset),
+              title: const Text('Change Password'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/update-password');
+              },
+            ),
              const Divider(),
              ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
@@ -192,7 +219,7 @@ class _AgentDashboardScreenState extends ConsumerState<AgentDashboardScreen> {
                           ),
                         const SizedBox(height: 16),
                         if (activeCodes.isEmpty)
-                          const Text('No active codes. Generate one to start referring.', style: TextStyle(color: Colors.grey))
+                          const Text('No active codes. Generate one to refer.', style: TextStyle(color: Colors.grey))
                         else
                           ListView.separated(
                             shrinkWrap: true,

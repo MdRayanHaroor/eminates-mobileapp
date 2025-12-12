@@ -25,7 +25,7 @@ class InvestmentDocumentsScreen extends ConsumerWidget {
           children: [
             _buildSectionHeader('Plan Details'),
             _buildInfoCard([
-              _buildRow('Plan Name', request.planName),
+              _buildRow('Plan Name', request.effectivePlanName),
               _buildRow('Amount', '₹${request.parsedAmount.toStringAsFixed(0)}'),
               _buildRow('Status', request.status),
               _buildRow('Date Joined', DateFormat.yMMMd().format(request.createdAt ?? DateTime.now())),
