@@ -252,7 +252,68 @@ class RequestDetailsScreen extends ConsumerWidget {
               children: [
                 if (request.status == 'Pending') ...[
                   FilledButton.icon(
-                    onPressed: () => _updateStatus(context, ref, request.id!, 'Approved'),
+                    onPressed: () async {
+                      // 1. Fetch active bank settings
+                      final bankSettings = await ref.read(investorRepositoryProvider).getAppSettings('bank_details');
+                      
+                      if (context.mounted) {
+                        // 2. Show Selection Dialog
+                        if (bankSettings.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No active bank accounts found. Please add one in Settings.')));
+                          return;
+                        }
+
+                        Map<String, dynamic>? selectedBank = bankSettings.first['value']; // Default to first
+                        
+                        // If multiple, user must choose. If one, auto-select or still confirm? Let's show dialog always for clarity.
+                        
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) {
+                            return AlertDialog(
+                              title: const Text('Approve Request'),
+                              content: StatefulBuilder(
+                                builder: (context, setState) {
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Select Bank Account for user to deposit funds:'),
+                                      const SizedBox(height: 12),
+                                      DropdownButtonFormField<Map<String, dynamic>>(
+                                        isExpanded: true,
+                                        value: selectedBank,
+                                        items: bankSettings.map((e) {
+                                          final val = e['value'] as Map<String, dynamic>;
+                                          final desc = e['description'] ?? val['bank_name'] ?? 'Bank';
+                                          return DropdownMenuItem(
+                                            value: val,
+                                            child: Text('$desc (${val['account_no']})', overflow: TextOverflow.ellipsis),
+                                          );
+                                        }).toList(),
+                                        onChanged: (v) => setState(() => selectedBank = v),
+                                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                                      ),
+                                    ],
+                                  );
+                                }
+                              ),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Approve'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                        
+                        if (confirmed == true && selectedBank != null) {
+                           _updateStatus(context, ref, request.id!, 'Approved', adminBankDetails: selectedBank);
+                        }
+                      }
+                    },
                     icon: const Icon(Icons.check),
                     label: const Text('Approve'),
                     style: FilledButton.styleFrom(backgroundColor: Colors.green),
@@ -316,9 +377,9 @@ class RequestDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _updateStatus(BuildContext context, WidgetRef ref, String id, String status, {String? reason}) async {
+  Future<void> _updateStatus(BuildContext context, WidgetRef ref, String id, String status, {String? reason, Map<String, dynamic>? adminBankDetails}) async {
     try {
-      await ref.read(investorRepositoryProvider).updateRequestStatus(id, status, reason: reason);
+      await ref.read(investorRepositoryProvider).updateRequestStatus(id, status, reason: reason, adminBankDetails: adminBankDetails);
       ref.invalidate(investorRequestDetailsProvider(id));
       ref.invalidate(allRequestsProvider); // Refresh admin list
       if (context.mounted) {

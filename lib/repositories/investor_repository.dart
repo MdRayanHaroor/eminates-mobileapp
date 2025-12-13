@@ -42,10 +42,13 @@ class InvestorRepository {
     await _supabase.from('investor_requests').insert(request.toJson());
   }
 
-  Future<void> updateRequestStatus(String id, String status, {String? reason}) async {
-    final data = {'status': status};
+  Future<void> updateRequestStatus(String id, String status, {String? reason, Map<String, dynamic>? adminBankDetails}) async {
+    final Map<String, dynamic> data = {'status': status};
     if (reason != null) {
       data['rejection_reason'] = reason;
+    }
+    if (adminBankDetails != null) {
+      data['admin_bank_details'] = adminBankDetails;
     }
     
     await _supabase
@@ -122,17 +125,34 @@ class InvestorRepository {
     return response as List<dynamic>;
   }
 
-  Future<Map<String, dynamic>?> getAppSetting(String key) async {
+  Future<List<Map<String, dynamic>>> getAppSettings(String key) async {
     try {
       final response = await _supabase
           .from('app_settings')
-          .select('value')
+          .select() // Select all fields (id, key, value, description, is_active)
           .eq('key', key)
-          .single();
-      return response['value'] as Map<String, dynamic>?;
+          .eq('is_active', true) // Only active ones? Maybe all for admin screen.
+          .order('created_at', ascending: false);
+      
+      // We return the full row maps
+      return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      return null;
+      return [];
     }
+  }
+  
+  // For Admin to see ALL (including inactive)
+  Future<List<Map<String, dynamic>>> getAllAppSettings(String key) async {
+    final response = await _supabase
+        .from('app_settings')
+        .select()
+        .eq('key', key)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<void> deleteAppSetting(String id) async {
+    await _supabase.from('app_settings').delete().eq('id', id);
   }
 
   Future<void> updateInvestmentPlan(InvestmentPlan plan) async {
@@ -144,14 +164,33 @@ class InvestorRepository {
       'duration_months': (plan.tenureYears * 12).toInt(),
       'features': plan.features,
       'is_active': plan.isActive,
+      'monthly_profit_percentage': plan.monthlyProfitPercentage,
+      'tenure_details': plan.tenureBonuses.map((k, v) => MapEntry(k.toString(), v)),
+      'description': plan.description,
     }).eq('id', plan.id!);
   }
 
-  Future<void> saveAppSetting(String key, Map<String, dynamic> value) async {
-    await _supabase.from('app_settings').upsert({
+  Future<void> saveAppSetting({
+    String? id,
+    required String key,
+    required Map<String, dynamic> value,
+    String? description,
+    bool isActive = true,
+  }) async {
+    final data = {
       'key': key,
       'value': value,
+      'description': description,
+      'is_active': isActive,
       'updated_at': DateTime.now().toIso8601String(),
-    });
+    };
+    
+    if (id != null) {
+      // Update
+      await _supabase.from('app_settings').update(data).eq('id', id);
+    } else {
+      // Insert
+      await _supabase.from('app_settings').insert(data);
+    }
   }
 }

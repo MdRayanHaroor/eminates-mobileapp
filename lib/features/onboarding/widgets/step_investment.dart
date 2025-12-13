@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
 import 'package:investorapp_eminates/features/onboarding/providers/onboarding_provider.dart';
+import 'package:investorapp_eminates/features/plans/providers/plans_provider.dart';
 
 class StepInvestment extends ConsumerStatefulWidget {
   const StepInvestment({super.key});
@@ -11,61 +12,18 @@ class StepInvestment extends ConsumerStatefulWidget {
   ConsumerState<StepInvestment> createState() => _StepInvestmentState();
 }
 
+
+
 class _StepInvestmentState extends ConsumerState<StepInvestment> {
   String? _selectedPlanName;
   final _customAmountController = TextEditingController();
   
-  final List<InvestmentPlan> _plans = [
-    const InvestmentPlan(
-      name: 'Silver Plan',
-      amountWithSymbol: 'Up to ₹3,00,000',
-      tenure: '3 years',
-      payout: 'Quarterly',
-      roi: 'Approx 24% annual',
-      roiPercentage: 24.0,
-      tenureYears: 3.0,
-      payoutFrequencyMonths: 3,
-      minAmount: 100000,
-      maxAmount: 300000,
-    ),
-    const InvestmentPlan(
-      name: 'Gold Plan',
-      amountWithSymbol: 'Up to ₹5,00,000',
-      tenure: '6 years',
-      payout: 'Half-yearly',
-      roi: '~30%',
-      roiPercentage: 30.0,
-      tenureYears: 6.0,
-      payoutFrequencyMonths: 6,
-      minAmount: 300001,
-      maxAmount: 500000,
-    ),
-    const InvestmentPlan(
-      name: 'Platinum Plan',
-      amountWithSymbol: 'Up to ₹10,00,000',
-      tenure: '6 years',
-      payout: 'Yearly',
-      roi: '~36%',
-      roiPercentage: 36.0,
-      tenureYears: 6.0,
-      payoutFrequencyMonths: 12,
-      minAmount: 500001,
-      maxAmount: 1000000,
-    ),
-    const InvestmentPlan(
-      name: 'Elite Plan',
-      amountWithSymbol: 'Above ₹10,00,000',
-      tenure: '5–7 years',
-      payout: 'Yearly/Agreement',
-      roi: 'Custom',
-      description: 'For HNI investors',
-      isCustom: true,
-      minAmount: 1000001,
-      roiPercentage: 36.0, 
-      tenureYears: 5.0,
-      payoutFrequencyMonths: 12,
-    ),
-  ];
+  // Cache the plans to avoid flicker if they don't change often, or just use provider state
+  // List<InvestmentPlan> _plans = []; // No longer needed as state, derive from provider
+
+  
+  // Plans are now fetched from provider
+
 
   final FocusNode _amountFocusNode = FocusNode();
 
@@ -75,25 +33,19 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
     final state = ref.read(onboardingFormProvider);
     final currentAmount = state.investmentAmount;
     
-    // Default selection if none
-    if (_selectedPlanName == null) {
-       _selectedPlanName = _plans[0].name;
+    if (state.planName != null) {
+       _selectedPlanName = state.planName;
     }
 
     if (currentAmount != null && currentAmount.isNotEmpty) {
-      // First, try to extract numeric amount
       final regex = RegExp(r'₹([\d,]+)');
       final match = regex.firstMatch(currentAmount);
       if (match != null) {
-        // If we have an amount, set it in controller
         final cleanAmount = match.group(1)?.replaceAll(',', '') ?? '';
         _customAmountController.text = cleanAmount;
-        
-        // Match plan by logic if needed, but user wants NO smart switching
-        // So we just rely on name match if present
-        _matchPlanByName(currentAmount);
       } else {
-        _matchPlanByName(currentAmount);
+         // handle plain
+         _customAmountController.text = currentAmount.replaceAll(',', '');
       }
     }
 
@@ -102,21 +54,7 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   }
 
   void _onFocusChange() {
-    if (_amountFocusNode.hasFocus) {
-       final currentPlan = _plans.firstWhere((p) => p.name == _selectedPlanName);
-       if (_customAmountController.text.isEmpty && currentPlan.minAmount != null) {
-          _customAmountController.text = currentPlan.minAmount!.toInt().toString();
-       }
-    }
-  }
-
-  void _matchPlanByName(String text) {
-     for (final plan in _plans) {
-        if (text.contains(plan.name.split(' ')[0])) {
-           _selectedPlanName = plan.name;
-           break;
-        }
-     }
+    // Logic optional now, or fetch plan from provider state if needed
   }
 
   @override
@@ -129,11 +67,10 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   }
 
   void _onAmountChanged() {
-    // Just update provider, NO switching
     if (_selectedPlanName != null && _customAmountController.text.isNotEmpty) {
        final cleanAmount = _customAmountController.text.replaceAll(',', '');
        ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-          investmentAmount: cleanAmount, // Store purely numeric string
+          investmentAmount: cleanAmount, 
           planName: _selectedPlanName,
        );
     }
@@ -171,119 +108,169 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
         // Or keep it inside the selected card as before, but ensure it's ALWAYS visible for the selected card?
         // Let's keep it inside the selected card for context.
 
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _plans.length,
-          separatorBuilder: (ctx, i) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final plan = _plans[index];
-            final isSelected = _selectedPlanName == plan.name;
-            final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-            
-            return InkWell(
-              onTap: () => _onPlanSelected(plan),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: isSelected ? Theme.of(context).primaryColor : (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
-                    width: isSelected ? 2 : 1,
-                  ),
+        // Dynamic Plans Fetch
+        ref.watch(plansProvider).when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error loading plans: $err')),
+          data: (plans) {
+            // Auto Select logic moved here or kept in init?
+            // If _selectedPlanName is null, default to first content
+            if (_selectedPlanName == null && plans.isNotEmpty) {
+               // Schedule microtask to avoid build error? or just set local var for this build
+               _selectedPlanName = plans[0].name;
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: plans.length,
+              separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final plan = plans[index];
+                final isSelected = _selectedPlanName == plan.name;
+                final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                
+                return InkWell(
+                  onTap: () => _onPlanSelected(plan), // Pass plan object directly
                   borderRadius: BorderRadius.circular(12),
-                  color: isSelected 
-                      ? Theme.of(context).primaryColor.withOpacity(0.05) 
-                      : (isDarkMode ? Theme.of(context).cardColor : Colors.white),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isSelected ? Theme.of(context).primaryColor : (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
+                        width: isSelected ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      color: isSelected 
+                          ? Theme.of(context).primaryColor.withOpacity(0.05) 
+                          : (isDarkMode ? Theme.of(context).cardColor : Colors.white),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                plan.name,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    plan.name,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                  if (plan.description != null)
+                                    Text(
+                                      plan.description!,
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                    ),
+                                ],
                               ),
-                              if (plan.description != null)
-                                Text(
-                                  plan.description!,
-                                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                ),
-                            ],
-                          ),
+                            ),
+                            Text(
+                              plan.amountWithSymbol,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          plan.amountWithSymbol,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Theme.of(context).primaryColor,
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        _buildDetailRow(context, 'Tenure', plan.tenure),
+                        _buildDetailRow(context, 'Payout', plan.payout),
+                        _buildDetailRow(context, 'ROI', plan.roi),
+                        
+                        if (isSelected) ...[
+                          const SizedBox(height: 16),
+                          // Monthly Profit
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            child: Text(
+                              'Monthly Profit: ${plan.monthlyProfitPercentage}%',
+                              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Tenure Selection
+                          DropdownButtonFormField<int>(
+                            decoration: const InputDecoration(labelText: 'Select Tenure (Mandatory)', border: OutlineInputBorder()),
+                            value: ref.read(onboardingFormProvider).selectedTenure, // State determines value
+                            items: plan.tenureBonuses.keys.map((years) {
+                                 final bonus = plan.tenureBonuses[years];
+                                 return DropdownMenuItem<int>(
+                                   value: years,
+                                   child: Text('$years Years (Maturity Bonus: $bonus%)'),
+                                 );
+                            }).toList(),
+                            onChanged: (val) {
+                               if (val != null) {
+                                 ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+                                   selectedTenure: val,
+                                   maturityBonusPercentage: plan.tenureBonuses[val],
+                                 );
+                                 setState((){}); 
+                               }
+                            },
+                            validator: (v) => v == null ? 'Please select a tenure' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          TextFormField(
+                            controller: _customAmountController,
+                            focusNode: _amountFocusNode,
+                            decoration: InputDecoration(
+                              labelText: plan.name == 'Elite Plan' 
+                                  ? 'Investment Amount above ₹${plan.minAmount?.toInt() ?? 0}'
+                                  : (index > 0 
+                                      ? 'Investment Amount above ₹${plans[index-1].maxAmount?.toInt() ?? 0}'
+                                      : 'Investment Amount (Min ₹${plan.minAmount?.toInt() ?? 0})'),
+                              prefixText: '₹ ',
+                              border: const OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return 'Enter amount';
+                              final val = double.tryParse(value.replaceAll(',', ''));
+                              if (val == null) return 'Invalid amount';
+                              
+                              if (plan.minAmount != null && val < plan.minAmount!) {
+                                 return 'Min amount is ₹${plan.minAmount!.toInt()}';
+                              }
+                              if (plan.maxAmount != null && val > plan.maxAmount!) {
+                                 return 'Max amount is ₹${plan.maxAmount!.toInt()}';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                        
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () => _viewPlanDetails(plan),
+                            icon: const Icon(Icons.info_outline, size: 16),
+                            label: const Text('View Details & Profit Calculation'),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    _buildDetailRow(context, 'Tenure', plan.tenure),
-                    _buildDetailRow(context, 'Payout', plan.payout),
-                    _buildDetailRow(context, 'ROI', plan.roi),
-                    
-                    if (isSelected) ...[
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _customAmountController,
-                        focusNode: _amountFocusNode,
-                        decoration: InputDecoration(
-                          labelText: plan.name == 'Elite Plan' 
-                              ? 'Investment Amount above ₹${plan.minAmount?.toInt() ?? 0}'
-                              : (index > 0 
-                                  ? 'Investment Amount above ₹${_plans[index-1].maxAmount?.toInt() ?? 0}'
-                                  : 'Investment Amount (Min ₹${plan.minAmount?.toInt() ?? 0})'),
-                          prefixText: '₹ ',
-                          border: const OutlineInputBorder(),
-                          // helperText: 'Min: ₹${plan.minAmount?.toInt()} - Max: ₹${plan.maxAmount?.toInt() ?? "Unlimited"}',
-                        ),
-                        keyboardType: TextInputType.number,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) return 'Enter amount';
-                          final val = double.tryParse(value.replaceAll(',', ''));
-                          if (val == null) return 'Invalid amount';
-                          
-                          if (plan.minAmount != null && val < plan.minAmount!) {
-                             return 'For ${plan.name} min and max amount is ₹${plan.minAmount!.toInt()} - ₹${plan.maxAmount?.toInt() ?? "Above"}';
-                          }
-                          if (plan.maxAmount != null && val > plan.maxAmount!) {
-                             return 'For ${plan.name} min and max amount is ₹${plan.minAmount!.toInt()} - ₹${plan.maxAmount!.toInt()}';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                    
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () => _viewPlanDetails(plan),
-                        icon: const Icon(Icons.info_outline, size: 16),
-                        label: const Text('View Details & Profit Calculation'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             );
           },
         ),

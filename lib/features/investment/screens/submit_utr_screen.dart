@@ -20,9 +20,10 @@ class _SubmitUtrScreenState extends ConsumerState<SubmitUtrScreen> {
   bool _isLoading = false;
   Map<String, dynamic> _bankDetails = {
     "bank_name": "Loading...",
-    "account_holder": "",
-    "account_number": "",
-    "ifsc_code": ""
+    "account_name": "",
+    "account_no": "",
+    "ifsc": "",
+    "branch": ""
   };
 
   @override
@@ -32,9 +33,31 @@ class _SubmitUtrScreenState extends ConsumerState<SubmitUtrScreen> {
   }
 
   Future<void> _loadBankDetails() async {
-    final details = await ref.read(investorRepositoryProvider).getAppSetting('bank_details');
-    if (details != null && mounted) {
-      setState(() => _bankDetails = details);
+    try {
+      // 1. Try to fetch the specific request to see if bank details are linked
+      final request = await ref.read(investorRepositoryProvider).getRequestById(widget.requestId);
+      
+      print('DEBUG: Request ID: ${widget.requestId}');
+      print('DEBUG: Admin Bank Details in Request: ${request.adminBankDetails}');
+
+      if (request.adminBankDetails != null && request.adminBankDetails!.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _bankDetails = request.adminBankDetails!;
+          });
+        }
+        return;
+      }
+      
+      // 2. Fallback: Fetch general settings (e.g. for legacy requests)
+      final settingsList = await ref.read(investorRepositoryProvider).getAppSettings('bank_details');
+      if (settingsList.isNotEmpty && mounted) {
+        setState(() {
+          _bankDetails = settingsList.first['value'] as Map<String, dynamic>;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading bank details: $e');
     }
   }
 
@@ -134,11 +157,13 @@ class _SubmitUtrScreenState extends ConsumerState<SubmitUtrScreen> {
                             const Divider(height: 24),
                             _buildDetailRow('Bank Name', _bankDetails['bank_name'] ?? 'N/A'),
                             const SizedBox(height: 8),
-                            _buildDetailRow('Account Holder', _bankDetails['account_holder'] ?? 'N/A'),
+                            _buildDetailRow('Account Holder', _bankDetails['account_name'] ?? 'N/A'),
                             const SizedBox(height: 8),
-                            _buildDetailRow('Account Number', _bankDetails['account_number'] ?? 'N/A'),
+                            _buildDetailRow('Account Number', _bankDetails['account_no'] ?? 'N/A'),
                             const SizedBox(height: 8),
-                            _buildDetailRow('IFSC Code', _bankDetails['ifsc_code'] ?? 'N/A'),
+                            _buildDetailRow('IFSC Code', _bankDetails['ifsc'] ?? 'N/A'),
+                            const SizedBox(height: 8),
+                            _buildDetailRow('Branch', _bankDetails['branch'] ?? 'N/A'),
                           ],
                         ),
                       ),

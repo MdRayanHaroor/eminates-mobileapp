@@ -67,15 +67,21 @@ class InvestorRequest {
   // Transaction Details (Post-Acceptance)
   final String? transactionUtr;
   final DateTime? transactionDate;
+  final int? selectedTenure;
+  final double? maturityBonusPercentage;
+  
+  final Map<String, dynamic>? adminBankDetails; // The selected bank details for this request
   
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  InvestorRequest({
+  const InvestorRequest({
     this.id,
     this.investorId,
+    this.createdAt,
+    this.updatedAt,
     required this.userId,
-    this.status = 'Pending',
+    this.status = 'Draft',
     this.fullName,
     this.fatherName,
     this.motherName,
@@ -122,8 +128,9 @@ class InvestorRequest {
     this.isConfirmed = false,
     this.transactionUtr,
     this.transactionDate,
-    this.createdAt,
-    this.updatedAt,
+    this.selectedTenure,
+    this.maturityBonusPercentage,
+    this.adminBankDetails,
   });
 
   // Helper getters
@@ -201,6 +208,9 @@ class InvestorRequest {
       transactionDate: json['transaction_date'] != null ? DateTime.tryParse(json['transaction_date']) : null,
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      selectedTenure: json['selected_tenure'] as int?,
+      maturityBonusPercentage: (json['maturity_bonus_percentage'] as num?)?.toDouble(),
+      adminBankDetails: json['admin_bank_details'] as Map<String, dynamic>?,
     );
   }
 
@@ -256,6 +266,9 @@ class InvestorRequest {
       'is_confirmed': isConfirmed,
       'transaction_utr': transactionUtr,
       'transaction_date': transactionDate?.toIso8601String(),
+      'selected_tenure': selectedTenure,
+      'maturity_bonus_percentage': maturityBonusPercentage,
+      'admin_bank_details': adminBankDetails,
     };
   }
 }

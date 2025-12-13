@@ -16,6 +16,8 @@ class InvestmentPlan {
   final int payoutFrequencyMonths; // derived from features or stored?
   final List<String> features; // New from DB
   final bool isActive; // New from DB
+  final double monthlyProfitPercentage;
+  final Map<int, double> tenureBonuses;
 
   const InvestmentPlan({
     this.id,
@@ -33,6 +35,8 @@ class InvestmentPlan {
     this.maxAmount,
     this.features = const [],
     this.isActive = true,
+    this.monthlyProfitPercentage = 2.0,
+    this.tenureBonuses = const {3: 30.0, 4: 40.0, 5: 50.0, 10: 100.0},
   });
 
   factory InvestmentPlan.fromJson(Map<String, dynamic> json) {
@@ -111,6 +115,8 @@ class InvestmentPlan {
       maxAmount: maxAmt,
       features: featuresList,
       isActive: json['is_active'] ?? true,
+      monthlyProfitPercentage: (json['monthly_profit_percentage'] as num?)?.toDouble() ?? 2.0,
+      tenureBonuses: (json['tenure_details'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(int.parse(k), (v as num).toDouble())) ?? {3: 30.0, 4: 40.0, 5: 50.0, 10: 100.0},
     );
   }
 
@@ -118,7 +124,16 @@ class InvestmentPlan {
     return {
       'id': id,
       'name': name,
-      // ... only useful if we were writing back to DB, but mostly we read
+      'description': description,
+      'is_custom': isCustom,
+      'min_amount': minAmount,
+      'max_amount': maxAmount,
+      'duration_months': (tenureYears * 12).toInt(),
+      'roi_percentage': roiPercentage,
+      'features': features,
+      'is_active': isActive,
+      'monthly_profit_percentage': monthlyProfitPercentage,
+      'tenure_details': tenureBonuses.map((k, v) => MapEntry(k.toString(), v)),
     };
   }
 }

@@ -13,7 +13,7 @@ import 'package:investorapp_eminates/features/investment/screens/payout_history_
 import 'package:investorapp_eminates/features/investment/screens/investment_documents_screen.dart';
 import 'package:investorapp_eminates/features/plans/plans_screen.dart';
 import 'package:investorapp_eminates/features/plans/edit_plan_screen.dart';
-import 'package:investorapp_eminates/features/dashboard/admin_settings_screen.dart';
+import 'package:investorapp_eminates/features/admin/screens/admin_settings_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/notifications_screen.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:investorapp_eminates/features/agents/agents_screen.dart';
