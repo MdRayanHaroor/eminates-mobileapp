@@ -25,7 +25,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final state = ref.read(onboardingFormProvider);
     
     switch (step) {
-      case 0: // Personal & Contact
+      case 0: // Investment (moved to first)
+        // Check Investment first
+        if ((state.investmentAmount ?? '').isEmpty) return _showError(context, 'Investment Amount is required');
+        return true;
+
+      case 1: // Personal & Contact
         if ((state.fullName ?? '').isEmpty) return _showError(context, 'Full Name is required');
         if ((state.fatherName ?? '').isEmpty) return _showError(context, 'Father Name is required');
         if ((state.motherName ?? '').isEmpty) return _showError(context, 'Mother Name is required');
@@ -56,7 +61,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         
         return true;
 
-      case 1: // KYC
+      case 2: // KYC
         if ((state.panNumber ?? '').isEmpty) return _showError(context, 'PAN Number is required');
         if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(state.panNumber ?? '')) return _showError(context, 'Invalid PAN Number');
 
@@ -65,7 +70,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         
         return true;
 
-      case 2: // Financials
+      case 3: // Financials
         if ((state.bankName ?? '').isEmpty) return _showError(context, 'Bank Name is required');
         if ((state.accountHolderName ?? '').isEmpty) return _showError(context, 'Account Holder Name is required');
         if ((state.accountNumber ?? '').isEmpty) return _showError(context, 'Account Number is required');
@@ -77,10 +82,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         if (state.nomineeDob == null) return _showError(context, 'Nominee DOB is required');
         if ((state.nomineeContact ?? '').isEmpty) return _showError(context, 'Nominee Contact is required');
         if ((state.nomineeAddress ?? '').isEmpty) return _showError(context, 'Nominee Address is required');
-        return true;
-
-      case 3: // Investment
-        if ((state.investmentAmount ?? '').isEmpty) return _showError(context, 'Investment Amount is required');
         return true;
 
       case 4: // Declaration
@@ -104,12 +105,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     final currentStep = ref.watch(onboardingStepProvider);
 
-    // List of steps
+    // List of steps reordered: Investment First
     final steps = [
+      const StepInvestment(),
       const StepPersonalContact(),
       const StepKyc(),
       const StepFinancials(),
-      const StepInvestment(),
       const StepDeclaration(),
     ];
 
@@ -133,7 +134,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   TextButton(
                     onPressed: () {
                       Navigator.pop(context); // Close dialog
-                      context.pop(); // Exit screen
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/dashboard');
+                      }
                     },
                     child: const Text('Exit'),
                   ),
@@ -184,6 +189,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
       body: Column(
         children: [
+          // Progress Bar
+          LinearProgressIndicator(
+            value: (currentStep + 1) / steps.length,
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+          ),
           // Custom Stepper Header
           Container(
             padding: const EdgeInsets.symmetric(vertical: 16),

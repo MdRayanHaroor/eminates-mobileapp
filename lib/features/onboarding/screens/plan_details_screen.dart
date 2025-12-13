@@ -3,16 +3,20 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
 
-class PlanDetailsScreen extends StatefulWidget {
-  final InvestmentPlan plan;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:investorapp_eminates/features/onboarding/providers/onboarding_provider.dart';
 
-  const PlanDetailsScreen({super.key, required this.plan});
+class PlanDetailsScreen extends ConsumerStatefulWidget {
+  final InvestmentPlan plan;
+  final bool fromOnboarding;
+
+  const PlanDetailsScreen({super.key, required this.plan, this.fromOnboarding = false});
 
   @override
-  State<PlanDetailsScreen> createState() => _PlanDetailsScreenState();
+  ConsumerState<PlanDetailsScreen> createState() => _PlanDetailsScreenState();
 }
 
-class _PlanDetailsScreenState extends State<PlanDetailsScreen> {
+class _PlanDetailsScreenState extends ConsumerState<PlanDetailsScreen> {
   late TextEditingController _amountController;
   late double _currentAmount;
   final _formKey = GlobalKey<FormState>();
@@ -20,10 +24,6 @@ class _PlanDetailsScreenState extends State<PlanDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize amount: custom uses minAmount, others use parsed amount from string or hardcoded mapping logic if needed.
-    // Since amountWithSymbol for fixed plans is like "₹3,00,000", we should ideally pass the exact double or parse it.
-    // For now, let's parse it from the symbol string if it's not custom, or use minAmount if custom.
-    
     if (widget.plan.isCustom) {
       _currentAmount = widget.plan.minAmount ?? 2500000;
     } else {
@@ -51,26 +51,30 @@ class _PlanDetailsScreenState extends State<PlanDetailsScreen> {
   }
 
   void _updateCalculations() {
-    if (widget.plan.isCustom) {
-      setState(() {
-        final val = double.tryParse(_amountController.text.replaceAll(',', ''));
-        if (val != null) {
-          _currentAmount = val;
-        }
-      });
-    }
+    setState(() {
+      final val = double.tryParse(_amountController.text.replaceAll(',', ''));
+      if (val != null) {
+        _currentAmount = val;
+      }
+    });
   }
 
   void _selectPlan() {
     if (_formKey.currentState?.validate() ?? false) {
-      // Return the complete string format expected by the provider/previous screen
-     String resultString;
-      if (widget.plan.isCustom) {
-        resultString = '₹${_amountController.text} – ${widget.plan.name}';
+      // Update the provider with the selected plan and amount
+      ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+        planName: widget.plan.name,
+        investmentAmount: _amountController.text,
+      );
+
+      if (widget.fromOnboarding) {
+        // If from onboarding, just pop back (with result as backup, though provider is updated)
+        String resultString = '₹${_amountController.text} – ${widget.plan.name}';
+        context.pop(resultString);
       } else {
-        resultString = '${widget.plan.amountWithSymbol} – ${widget.plan.name}';
+        // If from dashboard/plans, navigate to onboarding
+        context.go('/onboarding');
       }
-      context.pop(resultString);
     }
   }
 
@@ -166,44 +170,28 @@ class _PlanDetailsScreenState extends State<PlanDetailsScreen> {
               // Investment Input
               Text('Investment Amount', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              if (widget.plan.isCustom)
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    prefixText: '₹ ',
-                    border: OutlineInputBorder(),
-                    helperText: 'Min: ₹25,00,000',
-                  ),
-                  validator: (value) {
-                     if (value == null || value.isEmpty) return 'Enter amount';
-                      final val = double.tryParse(value.replaceAll(',', ''));
-                      if (val == null) return 'Invalid amount';
-                      if (val < (widget.plan.minAmount ?? 0)) {
-                        return 'Min amount is ${currencyFormat.format(widget.plan.minAmount)}';
-                      }
-                      return null;
-                  },
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? Colors.grey.shade800 : Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        widget.plan.amountWithSymbol,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const Spacer(),
-                      const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
-                    ],
-                  ),
+              TextFormField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  prefixText: '₹ ',
+                  border: OutlineInputBorder(),
+                  helperText: 'Enter amount to see projected returns',
                 ),
+                validator: (value) {
+                    if (value == null || value.isEmpty) return 'Enter amount';
+                    final val = double.tryParse(value.replaceAll(',', ''));
+                    if (val == null) return 'Invalid amount';
+                    
+                    if (val < (widget.plan.minAmount ?? 0)) {
+                      return 'Min amount is ${currencyFormat.format(widget.plan.minAmount)}';
+                    }
+                    if (widget.plan.maxAmount != null && val > widget.plan.maxAmount!) {
+                      return 'Max amount is ${currencyFormat.format(widget.plan.maxAmount)}';
+                    }
+                    return null;
+                },
+              ),
               
               const SizedBox(height: 24),
 

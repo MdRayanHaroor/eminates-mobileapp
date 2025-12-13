@@ -14,6 +14,8 @@ import 'package:investorapp_eminates/features/investment/screens/investment_docu
 import 'package:investorapp_eminates/features/plans/plans_screen.dart';
 import 'package:investorapp_eminates/features/plans/edit_plan_screen.dart';
 import 'package:investorapp_eminates/features/admin/screens/admin_settings_screen.dart';
+import 'package:investorapp_eminates/features/admin/screens/admin_users_screen.dart';
+import 'package:investorapp_eminates/features/admin/screens/admin_user_detail_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/notifications_screen.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:investorapp_eminates/features/agents/agents_screen.dart';
@@ -22,6 +24,7 @@ import 'package:investorapp_eminates/features/agents/screens/agent_referrals_scr
 import 'package:investorapp_eminates/features/agents/screens/agent_payouts_screen.dart';
 import 'package:investorapp_eminates/features/agents/agent_detail_screen.dart';
 import 'package:investorapp_eminates/features/onboarding/screens/referral_entry_screen.dart';
+import 'package:investorapp_eminates/features/onboarding/screens/intro_walkthrough_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Placeholder classes removed to use imported implementations
@@ -66,6 +69,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
+        path: '/walkthrough',
+        builder: (context, state) => const IntroWalkthroughScreen(),
+      ),
+      GoRoute(
         path: '/request/:id',
         builder: (context, state) => RequestDetailsScreen(requestId: state.pathParameters['id']!),
       ),
@@ -80,8 +87,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/plan-details',
         builder: (context, state) {
-          final plan = state.extra as InvestmentPlan;
-          return PlanDetailsScreen(plan: plan);
+          final extra = state.extra;
+          InvestmentPlan plan;
+          bool fromOnboarding = false;
+
+          if (extra is InvestmentPlan) {
+            plan = extra;
+          } else if (extra is Map) {
+            plan = extra['plan'] as InvestmentPlan;
+            fromOnboarding = extra['fromOnboarding'] as bool? ?? false;
+          } else {
+             // Fallback or error
+             throw Exception('Invalid args for plan details');
+          }
+          
+          return PlanDetailsScreen(plan: plan, fromOnboarding: fromOnboarding);
         },
       ),
       GoRoute(
@@ -157,6 +177,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin-settings',
         builder: (context, state) => const AdminSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        builder: (context, state) => const AdminUsersScreen(),
+      ),
+      GoRoute(
+        path: '/admin/users/:id',
+        builder: (context, state) {
+           final id = state.pathParameters['id']!;
+           final extra = state.extra as Map<String, dynamic>?;
+           return AdminUserDetailsScreen(userId: id, userExtra: extra);
+        },
       ),
 
     ],

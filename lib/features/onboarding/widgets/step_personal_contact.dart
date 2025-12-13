@@ -185,7 +185,7 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Section A: Personal Information', style: Theme.of(context).textTheme.titleLarge),
+          Text('Section B: Personal Information', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           TextFormField(controller: _fullNameController, decoration: const InputDecoration(labelText: 'Full Name (as per PAN) *')),
           const SizedBox(height: 8),
@@ -261,7 +261,7 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
           ),
           
           const SizedBox(height: 24),
-          Text('Section B: Residential Address', style: Theme.of(context).textTheme.titleLarge),
+          Text('Section C: Residential Address', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           TextFormField(controller: _doorNoController, decoration: const InputDecoration(labelText: 'Door / Flat No *')),
           const SizedBox(height: 8),
@@ -292,7 +292,7 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
           TextFormField(controller: _landmarkController, decoration: const InputDecoration(labelText: 'Nearest Landmark')),
           
           const SizedBox(height: 24),
-          Text('Section C: Contact Details', style: Theme.of(context).textTheme.titleLarge),
+          Text('Section D: Contact Details', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           TextFormField(controller: _primaryMobileController, decoration: const InputDecoration(labelText: 'Primary Mobile Number *'), keyboardType: TextInputType.phone),
           const SizedBox(height: 8),

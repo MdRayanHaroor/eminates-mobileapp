@@ -176,7 +176,7 @@ class _StepKycState extends ConsumerState<StepKyc> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Section D: KYC Details', style: Theme.of(context).textTheme.titleLarge),
+          Text('Section E: KYC Details', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           TextFormField(
             controller: _panController,

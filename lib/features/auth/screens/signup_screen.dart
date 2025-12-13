@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
 import 'package:investorapp_eminates/core/utils/error_utils.dart';
+import 'package:flutter/gestures.dart'; // Import for RichText tap support
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -15,6 +17,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
@@ -28,6 +31,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
             fullName: _fullNameController.text.trim(),
+            phone: _phoneController.text.trim(),
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -36,13 +40,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         context.go('/login');
       }
       } catch (e) {
-        debugPrint('Signup Error: $e'); // Print to console
+        debugPrint('Signup Error: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: $e'), // Show raw error to user
+              content: Text(ErrorUtils.getFriendlyErrorMessage(e)),
               backgroundColor: Colors.red,
-              duration: const Duration(seconds: 10),
+              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -54,23 +58,56 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+         backgroundColor: Colors.transparent,
+         elevation: 0,
+         iconTheme: IconThemeData(color: Colors.black87), // Ensure back arrow is visible
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0), // Removed top vertical padding
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Form(
               key: _formKey,
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center, // Center vertically
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // App Icon / Logo
+                  Center(
+                    child: Image.asset('assets/eminates_icon_png.png', width: 80, height: 80),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  Text(
+                    'Join Eminates',
+                    style: GoogleFonts.outfit(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start your investment journey today.',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      color: Colors.grey[600]
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 32),
+
                   TextFormField(
                     controller: _fullNameController,
                     decoration: const InputDecoration(
                       labelText: 'Full Name',
                       prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Full Name is required';
@@ -83,7 +120,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Email',
                       prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
@@ -95,11 +131,26 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(
+                      labelText: 'Mobile Number',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Mobile Number is required';
+                      if (!RegExp(r'^\+?[\d-]{7,}$').hasMatch(value)) {
+                        return 'Enter a valid mobile number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
                     controller: _passwordController,
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
-                      border: const OutlineInputBorder(),
                       helperText: 'Min 8 chars, alphanumeric',
                       suffixIcon: IconButton(
                         icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
@@ -121,20 +172,84 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _isLoading ? null : _signUp,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Sign Up'),
+                  
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _signUp,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
                   ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Terms and Conditions Note
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                        children: [
+                          const TextSpan(text: 'By signing up, you agree to our '),
+                          TextSpan(
+                            text: 'Terms & Conditions',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                // Placeholder for T&C navigation or dialog
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Terms & Conditions coming soon')),
+                                );
+                              },
+                          ),
+                          const TextSpan(text: ' and '),
+                          TextSpan(
+                            text: 'Privacy Policy',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                             recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Privacy Policy coming soon')),
+                                );
+                              },
+                          ),
+                          const TextSpan(text: '.'),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => context.go('/login'),
-                    child: const Text('Already have an account? Login'),
+                    child: RichText(
+                      text: TextSpan(
+                        text: "Already have an account? ",
+                        style: TextStyle(color: Colors.grey[600]),
+                        children: [
+                           TextSpan(
+                             text: 'Login', 
+                             style: TextStyle(
+                               color: Theme.of(context).colorScheme.primary, 
+                               fontWeight: FontWeight.bold
+                             ),
+                           ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

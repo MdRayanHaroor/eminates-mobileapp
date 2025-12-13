@@ -48,7 +48,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     final goRouter = ref.watch(goRouterProvider);
     
     return MaterialApp.router(
-      title: 'Eminates Investor App',
+      title: 'Eminates Holdings',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,

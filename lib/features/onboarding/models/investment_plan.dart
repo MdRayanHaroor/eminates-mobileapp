@@ -17,6 +17,8 @@ class InvestmentPlan {
   final List<String> features; // New from DB
   final bool isActive; // New from DB
   final double monthlyProfitPercentage;
+  final double quarterlyProfitPercentage;
+  final double halfYearlyProfitPercentage;
   final Map<int, double> tenureBonuses;
 
   const InvestmentPlan({
@@ -36,6 +38,8 @@ class InvestmentPlan {
     this.features = const [],
     this.isActive = true,
     this.monthlyProfitPercentage = 2.0,
+    this.quarterlyProfitPercentage = 7.0,
+    this.halfYearlyProfitPercentage = 16.0,
     this.tenureBonuses = const {3: 30.0, 4: 40.0, 5: 50.0, 10: 100.0},
   });
 
@@ -116,6 +120,8 @@ class InvestmentPlan {
       features: featuresList,
       isActive: json['is_active'] ?? true,
       monthlyProfitPercentage: (json['monthly_profit_percentage'] as num?)?.toDouble() ?? 2.0,
+      quarterlyProfitPercentage: (json['quarterly_profit_percentage'] as num?)?.toDouble() ?? 7.0,
+      halfYearlyProfitPercentage: (json['half_yearly_profit_percentage'] as num?)?.toDouble() ?? 16.0,
       tenureBonuses: (json['tenure_details'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(int.parse(k), (v as num).toDouble())) ?? {3: 30.0, 4: 40.0, 5: 50.0, 10: 100.0},
     );
   }
@@ -133,6 +139,8 @@ class InvestmentPlan {
       'features': features,
       'is_active': isActive,
       'monthly_profit_percentage': monthlyProfitPercentage,
+      'quarterly_profit_percentage': quarterlyProfitPercentage,
+      'half_yearly_profit_percentage': halfYearlyProfitPercentage,
       'tenure_details': tenureBonuses.map((k, v) => MapEntry(k.toString(), v)),
     };
   }

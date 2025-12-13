@@ -77,12 +77,20 @@ class AdminDashboardScreen extends ConsumerWidget {
                 context.push('/plans');
               },
             ),
-             ListTile(
+            ListTile(
               leading: const Icon(Icons.people_alt),
               title: const Text('Agents'),
               onTap: () {
                 context.pop(); 
                 context.push('/agents');
+              },
+            ),
+             ListTile(
+              leading: const Icon(Icons.supervised_user_circle),
+              title: const Text('Users'),
+              onTap: () {
+                context.pop(); 
+                context.push('/admin/users');
               },
             ),
             ListTile(

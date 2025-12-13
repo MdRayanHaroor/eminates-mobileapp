@@ -3,20 +3,36 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
+  // Premium Fintech Palette (Light)
+  static const Color _primaryLight = Color(0xFF1E3A8A); // Deep Royal Blue
+  static const Color _primaryContainerLight = Color(0xFFDBEAFE); // Soft Blue White
+  static const Color _secondaryLight = Color(0xFF0F766E); // Teal
+  static const Color _secondaryContainerLight = Color(0xFFCCFBF1); // Soft Teal
+  static const Color _tertiaryLight = Color(0xFFD97706); // Amber
+  static const Color _tertiaryContainerLight = Color(0xFFFEF3C7); // Soft Amber
+  static const Color _scaffoldBackgroundLight = Color(0xFFF8FAFC); // Cool Slate White
+
+  // Premium Fintech Palette (Dark)
+  static const Color _primaryDark = Color(0xFF60A5FA); // Lighter Blue for Dark Mode
+  static const Color _primaryContainerDark = Color(0xFF1E3A8A);
+  static const Color _secondaryDark = Color(0xFF2DD4BF); // Lighter Teal
+  static const Color _secondaryContainerDark = Color(0xFF0F766E);
+  static const Color _scaffoldBackgroundDark = Color(0xFF0F172A); // Deep Slate Navy
+
   static ThemeData get lightTheme {
     return FlexThemeData.light(
       colors: const FlexSchemeColor(
-        primary: Color(0xFF1565C0), // Deep Blue
-        primaryContainer: Color(0xFF90CAF9),
-        secondary: Color(0xFF1565C0),
-        secondaryContainer: Color(0xFF90CAF9),
-        tertiary: Color(0xFF1565C0),
-        tertiaryContainer: Color(0xFF90CAF9),
-        appBarColor: Color(0xFF90CAF9),
-        error: Color(0xFFB00020),
+        primary: _primaryLight,
+        primaryContainer: _primaryContainerLight,
+        secondary: _secondaryLight,
+        secondaryContainer: _secondaryContainerLight,
+        tertiary: _tertiaryLight,
+        tertiaryContainer: _tertiaryContainerLight,
+        appBarColor: _scaffoldBackgroundLight, 
+        error: Color(0xFFB91C1C),
       ),
       surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
-      blendLevel: 2, // Reduced blend level
+      blendLevel: 5,
       subThemesData: FlexSubThemesData(
         blendOnLevel: 10,
         blendOnColors: false,
@@ -24,40 +40,68 @@ class AppTheme {
         useM2StyleDividerInM3: true,
         alignedDropdown: true,
         useInputDecoratorThemeInDialogs: true,
-        defaultRadius: 12.0, // Global radius
+        defaultRadius: 16.0,
         inputDecoratorIsFilled: true,
         inputDecoratorFillColor: Colors.white,
         inputDecoratorBorderType: FlexInputBorderType.outline,
         inputDecoratorUnfocusedBorderIsColored: false,
         inputDecoratorUnfocusedHasBorder: true,
         inputDecoratorSchemeColor: SchemeColor.primary,
-        inputDecoratorBackgroundAlpha: 255, // Opaque
+        fabUseShape: true,
+        fabAlwaysCircular: true,
+        chipSchemeColor: SchemeColor.primary,
+        cardElevation: 1.5,
       ),
       keyColors: const FlexKeyColors(
         useSecondary: true,
         useTertiary: true,
+        keepPrimary: true,
       ),
       visualDensity: FlexColorScheme.comfortablePlatformDensity,
       useMaterial3: true,
       swapLegacyOnMaterial3: true,
-      fontFamily: GoogleFonts.inter().fontFamily,
-      scaffoldBackground: const Color(0xFFF5F7FA), // Ghost White
+      fontFamily: GoogleFonts.outfit().fontFamily ?? GoogleFonts.inter().fontFamily,
+      scaffoldBackground: _scaffoldBackgroundLight,
     ).copyWith(
-      // Subtle grey border for inputs in light mode
-      inputDecorationTheme: const InputDecorationTheme(
+      cardColor: Colors.white, // Explicitly set card color
+      appBarTheme: const AppBarTheme(
+        backgroundColor: _scaffoldBackgroundLight,
+        scrolledUnderElevation: 0,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Color(0xFF1E293B)),
+        titleTextStyle: TextStyle(
+          color: Color(0xFF0F172A),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Outfit',
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-          borderSide: BorderSide(color: Color(0xFFEEEEEE)), // Colors.grey.shade200
+          borderRadius: BorderRadius.circular(16.0),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-          borderSide: BorderSide(color: Color(0xFFEEEEEE)), // Colors.grey.shade200
+          borderRadius: BorderRadius.circular(16.0),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-          borderSide: BorderSide(color: Color(0xFF1565C0), width: 2),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16.0)),
+          borderSide: BorderSide(color: _primaryLight, width: 2),
+        ),
+        labelStyle: const TextStyle(color: Color(0xFF64748B)),
+        floatingLabelStyle: const TextStyle(color: _primaryLight, fontWeight: FontWeight.bold),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: _primaryLight,
+          foregroundColor: Colors.white,
+          elevation: 2,
         ),
       ),
     );
@@ -66,56 +110,52 @@ class AppTheme {
   static ThemeData get darkTheme {
     return FlexThemeData.dark(
       colors: const FlexSchemeColor(
-        primary: Color(0xFF5E81AC), // Muted Blue
-        primaryContainer: Color(0xFF2E3440),
-        secondary: Color(0xFF5E81AC),
-        secondaryContainer: Color(0xFF2E3440),
-        tertiary: Color(0xFF5E81AC),
-        tertiaryContainer: Color(0xFF2E3440),
-        appBarColor: Color(0xFF2E3440),
+        primary: _primaryDark,
+        primaryContainer: _primaryContainerDark,
+        secondary: _secondaryDark,
+        secondaryContainer: _secondaryContainerDark,
+        tertiary: _tertiaryLight, 
+        tertiaryContainer: _tertiaryContainerLight,
+        appBarColor: _scaffoldBackgroundDark,
         error: Color(0xFFCF6679),
       ),
       surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
-      blendLevel: 5, // Reduced blend level
+      blendLevel: 10,
       subThemesData: FlexSubThemesData(
         blendOnLevel: 20,
         useTextTheme: true,
         useM2StyleDividerInM3: true,
         alignedDropdown: true,
-        useInputDecoratorThemeInDialogs: true,
-        defaultRadius: 12.0, // Global radius
+        defaultRadius: 16.0,
         inputDecoratorIsFilled: true,
-        inputDecoratorFillColor: const Color(0xFF1E2329), // Gunmetal
+        inputDecoratorFillColor: const Color(0xFF1E293B),
         inputDecoratorBorderType: FlexInputBorderType.outline,
-        inputDecoratorUnfocusedHasBorder: false, // No visible border
-      ),
-      keyColors: const FlexKeyColors(
-        useSecondary: true,
-        useTertiary: true,
+        inputDecoratorUnfocusedHasBorder: false,
       ),
       visualDensity: FlexColorScheme.comfortablePlatformDensity,
       useMaterial3: true,
       swapLegacyOnMaterial3: true,
-      fontFamily: GoogleFonts.inter().fontFamily,
-      scaffoldBackground: const Color(0xFF121418), // Deep Midnight Slate
+      fontFamily: GoogleFonts.outfit().fontFamily ?? GoogleFonts.inter().fontFamily,
+      scaffoldBackground: _scaffoldBackgroundDark,
     ).copyWith(
-      cardColor: const Color(0xFF1E2329), // Gunmetal
-      // No visible border for inputs in dark mode
-      inputDecorationTheme: const InputDecorationTheme(
+      cardColor: const Color(0xFF1E293B), // Explicitly set card color
+      inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color(0xFF1E2329),
+        fillColor: const Color(0xFF1E293B),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12.0)),
+          borderRadius: BorderRadius.circular(16.0),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12.0)),
+          borderRadius: BorderRadius.circular(16.0),
           borderSide: BorderSide.none,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-          borderSide: BorderSide(color: Color(0xFF5E81AC), width: 2),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16.0)),
+          borderSide: BorderSide(color: _primaryDark, width: 2),
         ),
+        labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
       ),
     );
   }

@@ -84,7 +84,7 @@ class _StepFinancialsState extends ConsumerState<StepFinancials> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Section E: Bank Details', style: Theme.of(context).textTheme.titleLarge),
+        Text('Section F: Bank Details', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 16),
         TextFormField(controller: _bankNameController, decoration: const InputDecoration(labelText: 'Bank Name *')),
         const SizedBox(height: 8),
@@ -132,7 +132,7 @@ class _StepFinancialsState extends ConsumerState<StepFinancials> {
         TextFormField(controller: _branchController, decoration: const InputDecoration(labelText: 'Branch Name & Location *')),
         
         const SizedBox(height: 24),
-        Text('Section F: Nominee Details', style: Theme.of(context).textTheme.titleLarge),
+        Text('Section G: Nominee Details', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 16),
         TextFormField(controller: _nomineeNameController, decoration: const InputDecoration(labelText: 'Nominee Full Name *')),
         const SizedBox(height: 8),

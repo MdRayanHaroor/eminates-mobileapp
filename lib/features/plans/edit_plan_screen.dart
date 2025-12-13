@@ -22,6 +22,8 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
   
   // New Controllers
   late TextEditingController _monthlyProfitController;
+  late TextEditingController _quarterlyProfitController;
+  late TextEditingController _halfYearlyProfitController;
   late TextEditingController _descriptionController;
   late TextEditingController _featuresController; // One per line
   bool _isActive = true;
@@ -40,6 +42,9 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
     _tenureController = TextEditingController(text: widget.plan.tenureYears.toString()); // Display tenure
     
     _monthlyProfitController = TextEditingController(text: widget.plan.monthlyProfitPercentage.toString());
+    _quarterlyProfitController = TextEditingController(text: widget.plan.quarterlyProfitPercentage.toString());
+    _halfYearlyProfitController = TextEditingController(text: widget.plan.halfYearlyProfitPercentage.toString());
+    
     _descriptionController = TextEditingController(text: widget.plan.description ?? '');
     _featuresController = TextEditingController(text: widget.plan.features.join('\n'));
     _isActive = widget.plan.isActive;
@@ -57,6 +62,8 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
     _maxAmountController.dispose();
     _tenureController.dispose();
     _monthlyProfitController.dispose();
+    _quarterlyProfitController.dispose();
+    _halfYearlyProfitController.dispose();
     _descriptionController.dispose();
     _featuresController.dispose();
     for (var c in _bonusControllers.values) {
@@ -145,6 +152,8 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
         features: featuresList,
         isActive: _isActive,
         monthlyProfitPercentage: double.parse(_monthlyProfitController.text),
+        quarterlyProfitPercentage: double.parse(_quarterlyProfitController.text),
+        halfYearlyProfitPercentage: double.parse(_halfYearlyProfitController.text),
         tenureBonuses: tenureMap,
       );
 
@@ -194,11 +203,33 @@ class _EditPlanScreenState extends ConsumerState<EditPlanScreen> {
                       validator: (val) => val!.isEmpty ? 'Required' : null,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: TextFormField(
                       controller: _monthlyProfitController,
-                      decoration: const InputDecoration(labelText: 'Monthly Profit (%)', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(labelText: 'Monthly (%)', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                      validator: (val) => val!.isEmpty ? 'Required' : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _quarterlyProfitController,
+                      decoration: const InputDecoration(labelText: 'Quarterly (%)', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                      validator: (val) => val!.isEmpty ? 'Required' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _halfYearlyProfitController,
+                      decoration: const InputDecoration(labelText: 'Half-Yearly (%)', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                       validator: (val) => val!.isEmpty ? 'Required' : null,
                     ),

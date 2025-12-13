@@ -156,18 +156,11 @@ class InvestorRepository {
   }
 
   Future<void> updateInvestmentPlan(InvestmentPlan plan) async {
-    // Only update editable fields
-    await _supabase.from('investment_plans').update({
-      'min_amount': plan.minAmount,
-      'max_amount': plan.maxAmount, // Assuming we added this to model, or we just map min/max
-      'roi_percentage': plan.roiPercentage,
-      'duration_months': (plan.tenureYears * 12).toInt(),
-      'features': plan.features,
-      'is_active': plan.isActive,
-      'monthly_profit_percentage': plan.monthlyProfitPercentage,
-      'tenure_details': plan.tenureBonuses.map((k, v) => MapEntry(k.toString(), v)),
-      'description': plan.description,
-    }).eq('id', plan.id!);
+    // Only update editable fields - using toJson() is safer as it includes all new schema fields
+    // We remove 'id' from the map to avoid updating primary key (though Supabase ignores it usually)
+    final data = plan.toJson();
+    data.remove('id');
+    await _supabase.from('investment_plans').update(data).eq('id', plan.id!);
   }
 
   Future<void> saveAppSetting({
@@ -191,6 +184,42 @@ class InvestorRepository {
     } else {
       // Insert
       await _supabase.from('app_settings').insert(data);
+    }
+  }
+
+  // --- User Management Methods ---
+
+  Future<List<Map<String, dynamic>>> getUsers() async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select()
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> getUserDetails(String userId) async {
+    final response = await _supabase
+        .from('users')
+        .select()
+        .eq('id', userId)
+        .single();
+    return response;
+  }
+
+  Future<List<Map<String, dynamic>>> getReferrals(String referrerId) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select()
+          .eq('referred_by', referrerId)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
     }
   }
 }

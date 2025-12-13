@@ -11,27 +11,62 @@ class AuthRepository {
 
   User? get currentUser => _supabase.auth.currentUser;
 
+  String _sanitizePhone(String phone) {
+    // Remove all characters except digits and +
+    return phone.replaceAll(RegExp(r'[^\d+]'), '');
+  }
+
   Future<AuthResponse> signUp({
     required String email,
     required String password,
     required String fullName,
+    required String phone,
   }) async {
+    final sanitizedPhone = _sanitizePhone(phone);
     return await _supabase.auth.signUp(
       email: email,
       password: password,
-      data: {'full_name': fullName},
+      data: {
+        'full_name': fullName,
+        'phone': sanitizedPhone,
+      },
       emailRedirectTo: 'io.supabase.app://login-callback',
     );
   }
 
   Future<AuthResponse> signIn({
-    required String email,
+    required String identifier,
     required String password,
   }) async {
-    return await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    final isEmail = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(identifier);
+    if (isEmail) {
+      return await _supabase.auth.signInWithPassword(
+        email: identifier,
+        password: password,
+      );
+    } else {
+      // Phone Login (without SMS provider)
+      try {
+        final sanitizedPhone = _sanitizePhone(identifier);
+        
+        // Use RPC to bypass RLS for unauthenticated lookup
+        final String? email = await _supabase
+            .rpc('get_email_by_phone', params: {'phone_number': sanitizedPhone});
+
+        if (email == null) {
+          throw AuthException('No account found with this phone number: $sanitizedPhone');
+        }
+
+        // 3. Sign in with the found email
+        return await _supabase.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+      } catch (e) {
+        if (e is AuthException) rethrow;
+        throw AuthException('Login failed: ${e.toString()}');
+      }
+    }
   }
 
   GoogleSignIn get _googleSignIn {
