@@ -145,4 +145,33 @@ class AuthRepository {
       UserAttributes(password: newPassword),
     );
   }
+  Future<void> updatePhoneNumber(String phone) async {
+    final user = currentUser;
+    if (user == null) throw Exception('Not authenticated');
+    
+    final sanitizedPhone = _sanitizePhone(phone);
+    
+    await _supabase.from('users').update({
+      'phone': sanitizedPhone,
+    }).eq('id', user.id);
+  }
+
+  Future<bool> hasPhoneNumber() async {
+    final user = currentUser;
+    if (user == null) return false;
+
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('phone')
+          .eq('id', user.id)
+          .single();
+      
+      final phone = response['phone'] as String?;
+      return phone != null && phone.isNotEmpty;
+    } catch (e) {
+      // If error occurs (e.g. user row not found yet), return false
+      return false;
+    }
+  }
 }

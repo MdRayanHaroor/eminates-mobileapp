@@ -20,7 +20,7 @@ class UserProfile {
       id: json['id'] as String,
       fullName: json['full_name'] as String?,
       email: json['email'] as String?,
-      mobile: json['mobile'] as String?,
+      mobile: json['phone'] as String?,
       role: json['role'] as String? ?? 'user',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
@@ -31,7 +31,7 @@ class UserProfile {
       'id': id,
       'full_name': fullName,
       'email': email,
-      'mobile': mobile,
+      'phone': mobile,
       'role': role,
       'created_at': createdAt.toIso8601String(),
     };

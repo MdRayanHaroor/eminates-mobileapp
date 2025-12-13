@@ -13,6 +13,8 @@ import 'package:investorapp_eminates/features/onboarding/providers/onboarding_pr
 import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:investorapp_eminates/repositories/investor_repository.dart';
 import 'package:investorapp_eminates/features/onboarding/providers/walkthrough_provider.dart';
+import 'package:investorapp_eminates/core/services/update_service.dart';
+import 'package:investorapp_eminates/core/widgets/update_dialog.dart';
 
 final userRoleProvider = FutureProvider<String?>((ref) async {
   // Watch the current user so this provider rebuilds on logout/login
@@ -67,7 +69,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
 
     if (!_checkedWalkthrough) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndNavigate());
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+           _checkAndNavigate();
+           _checkForUpdates();
+        });
     }
 
     return roleAsync.when(
@@ -154,6 +159,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
      }
   }
 
+  Future<void> _checkForUpdates() async {
+    // Only check if we are on Android for now (as per plan/request)
+    // iOS updates usually handled by App Store
+    // But check service works for both if configured in DB.
+    
+    final updateInfo = await ref.read(updateServiceProvider).checkForUpdate();
+    if (updateInfo != null && mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: !updateInfo.forceUpdate,
+        builder: (context) => UpdateDialog(updateInfo: updateInfo),
+      );
+    }
+  }
+
   PreferredSizeWidget _buildAppBar(BuildContext context, WidgetRef ref, String role) {
      return AppBar(
         backgroundColor: Colors.transparent, // Transparent for gradient
@@ -232,7 +252,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: kToolbarHeight + 20), // Spacer for AppBar
+            SizedBox(height: kToolbarHeight + 30), // Spacer for AppBar
             
             // Welcome Section
             Padding(
@@ -241,15 +261,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Welcome back,',
+                    (ref.watch(walkthroughProvider).valueOrNull ?? false) ? 'Welcome back,' : 'Welcome,',
                     style: GoogleFonts.outfit(
                       color: Colors.white70,
                       fontSize: 16,
-                    ),
+                    )
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 0),
                   Text(
-                    username,
+                    //show the full name from the user profile 
+                    userProfileAsync.valueOrNull?['full_name'] ?? username,
                     style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontSize: 28,

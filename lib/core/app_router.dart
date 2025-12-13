@@ -34,6 +34,8 @@ import 'package:investorapp_eminates/core/utils/go_router_refresh_stream.dart';
 
 import 'package:investorapp_eminates/features/auth/screens/change_password_screen.dart';
 import 'package:investorapp_eminates/features/auth/screens/update_password_screen.dart';
+import 'package:investorapp_eminates/features/auth/screens/phone_entry_screen.dart';
+import 'package:investorapp_eminates/core/services/phone_verification_service.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final supabase = Supabase.instance.client;
@@ -190,12 +192,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
            return AdminUserDetailsScreen(userId: id, userExtra: extra);
         },
       ),
+      GoRoute(
+        path: '/enter-phone',
+        builder: (context, state) => const PhoneEntryScreen(),
+      ),
 
     ],
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final session = supabase.auth.currentSession;
       final loggingIn = state.uri.toString() == '/login' || state.uri.toString() == '/signup';
       final changingPassword = state.uri.toString() == '/change-password';
+      final enteringPhone = state.uri.toString() == '/enter-phone';
 
       // 1. Handle Deep Links (prevent GoException)
       if (state.uri.scheme == 'io.supabase.app' || state.uri.scheme == 'io.supabase.investorapp') {
@@ -205,10 +212,32 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // 2. Normal Routing
-      if (session != null && changingPassword) return null;
+      if (session == null) {
+        if (!loggingIn && !changingPassword) return '/login';
+        return null; // Allow access to login/signup
+      }
 
-      if (session == null && !loggingIn && !changingPassword) return '/login';
-      if (session != null && loggingIn) return '/dashboard';
+      // Session exists
+      if (changingPassword) return null;
+
+      // Check phone verification
+      final isVerified = await PhoneVerificationService.isVerified(supabase, session.user.id);
+
+      if (enteringPhone) {
+        // If already verified, doesn't need to be here
+        if (isVerified) return '/dashboard';
+        // If not verified, allow to stay here
+        return null;
+      }
+
+      // Not on phone entry screen
+      if (!isVerified) {
+        // Must go to phone entry
+        return '/enter-phone';
+      }
+
+      // Verified and not entering phone
+      if (loggingIn) return '/dashboard';
 
       return null;
     },

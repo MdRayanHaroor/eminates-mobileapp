@@ -6,6 +6,7 @@ import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart'
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:investorapp_eminates/core/utils/error_utils.dart';
+import 'package:investorapp_eminates/features/onboarding/providers/walkthrough_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -205,7 +206,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 24),
 
                       Text(
-                        'Welcome Back',
+                        (ref.watch(walkthroughProvider).valueOrNull ?? false) ? 'Welcome Back' : 'Welcome',
                         style: GoogleFonts.outfit(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
