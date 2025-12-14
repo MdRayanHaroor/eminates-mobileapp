@@ -126,13 +126,13 @@ class InvestorRepository {
 
   // --- Dynamic Content Methods ---
 
-  Future<List<dynamic>> getInvestmentPlans() async {
+  Future<List<Map<String, dynamic>>> getInvestmentPlans() async {
     final response = await _supabase
         .from('investment_plans')
         .select()
         .eq('is_active', true)
         .order('min_amount', ascending: true);
-    return response as List<dynamic>;
+    return List<Map<String, dynamic>>.from(response);
   }
 
   Future<List<Map<String, dynamic>>> getAppSettings(String key) async {
@@ -231,5 +231,45 @@ class InvestorRepository {
     } catch (e) {
       return [];
     }
+  }
+  Future<double> getTotalPayouts(String userId) async {
+    try {
+      // 1. Get all request IDs for the user
+      final requests = await _supabase
+          .from('investor_requests')
+          .select('id')
+          .eq('user_id', userId);
+      
+      final requestIds = (requests as List).map((e) => e['id'] as String).toList();
+      
+      if (requestIds.isEmpty) return 0.0;
+      
+      // 2. Get all payouts for these requests
+      final payouts = await _supabase
+          .from('payouts')
+          .select('amount')
+          .filter('request_id', 'in', requestIds);
+          
+      // 3. Sum amounts
+      final total = (payouts as List).fold(0.0, (sum, item) {
+        final amount = item['amount'];
+        if (amount is int) return sum + amount;
+        if (amount is double) return sum + amount;
+        if (amount is String) return sum + double.tryParse(amount)!;
+        return sum;
+      });
+      
+      return total;
+    } catch (e) {
+      return 0.0;
+    }
+  }
+
+  Future<void> seedInvestmentPlans() async {
+    // Update tenures based on Plan Name
+    await _supabase.from('investment_plans').update({'tenure': '3 Years'}).ilike('name', '%Silver%');
+    await _supabase.from('investment_plans').update({'tenure': '4 Years'}).ilike('name', '%Gold%');
+    await _supabase.from('investment_plans').update({'tenure': '5 Years'}).ilike('name', '%Platinum%');
+    await _supabase.from('investment_plans').update({'tenure': '10 Years'}).ilike('name', '%Elite%');
   }
 }

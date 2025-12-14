@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:investorapp_eminates/features/auth/screens/login_screen.dart';
 import 'package:investorapp_eminates/features/auth/screens/signup_screen.dart';
+import 'package:investorapp_eminates/features/auth/screens/splash_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/dashboard_screen.dart';
 import 'package:investorapp_eminates/features/onboarding/screens/onboarding_screen.dart';
-import 'package:investorapp_eminates/features/request_details/request_details_screen.dart';
 import 'package:investorapp_eminates/features/onboarding/screens/plan_details_screen.dart';
 import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
 import 'package:investorapp_eminates/features/investment/screens/submit_utr_screen.dart';
@@ -36,6 +36,8 @@ import 'package:investorapp_eminates/features/auth/screens/change_password_scree
 import 'package:investorapp_eminates/features/auth/screens/update_password_screen.dart';
 import 'package:investorapp_eminates/features/auth/screens/phone_entry_screen.dart';
 import 'package:investorapp_eminates/core/services/phone_verification_service.dart';
+import 'package:investorapp_eminates/features/dashboard/screens/user_profile_screen.dart';
+import 'package:investorapp_eminates/features/dashboard/screens/request_details_screen.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final supabase = Supabase.instance.client;
@@ -63,6 +65,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SignUpScreen(),
       ),
       GoRoute(
+        path: '/splash',
+        builder: (context, state) {
+           final msg = state.extra as String?;
+           return SplashScreen(message: msg);
+        },
+      ),
+      GoRoute(
         path: '/dashboard',
         builder: (context, state) => const DashboardScreen(),
       ),
@@ -73,10 +82,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/walkthrough',
         builder: (context, state) => const IntroWalkthroughScreen(),
-      ),
-      GoRoute(
-        path: '/request/:id',
-        builder: (context, state) => RequestDetailsScreen(requestId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/change-password',
@@ -196,6 +201,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/enter-phone',
         builder: (context, state) => const PhoneEntryScreen(),
       ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const UserProfileScreen(),
+      ),
+      GoRoute(
+        path: '/request/:id',
+        builder: (context, state) => RequestDetailsScreen(requestId: state.pathParameters['id']!),
+      ),
 
     ],
     redirect: (context, state) async {
@@ -203,6 +216,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final loggingIn = state.uri.toString() == '/login' || state.uri.toString() == '/signup';
       final changingPassword = state.uri.toString() == '/change-password';
       final enteringPhone = state.uri.toString() == '/enter-phone';
+
+      final onSplash = state.uri.toString().startsWith('/splash');
 
       // 1. Handle Deep Links (prevent GoException)
       if (state.uri.scheme == 'io.supabase.app' || state.uri.scheme == 'io.supabase.investorapp') {
@@ -213,8 +228,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       // 2. Normal Routing
       if (session == null) {
-        if (!loggingIn && !changingPassword) return '/login';
-        return null; // Allow access to login/signup
+        if (!loggingIn && !changingPassword && !onSplash) return '/login';
+        return null; // Allow access to login/signup/splash
       }
 
       // Session exists

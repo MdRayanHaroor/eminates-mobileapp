@@ -70,6 +70,8 @@ class InvestorRequest {
   final int? selectedTenure;
   final double? maturityBonusPercentage;
   
+  final String? rejectionReason;
+  
   final Map<String, dynamic>? adminBankDetails; // The selected bank details for this request
   
   final DateTime? createdAt;
@@ -130,9 +132,11 @@ class InvestorRequest {
     this.transactionDate,
     this.selectedTenure,
     this.maturityBonusPercentage,
+    this.rejectionReason,
     this.adminBankDetails,
   });
 
+  // ... (getters omitted for brevity, they remain unchanged) ...
   // Helper getters
   // If planName is not set (legacy data), try to extract from investmentAmount if it follows the pattern
   String get effectivePlanName {
@@ -210,6 +214,7 @@ class InvestorRequest {
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
       selectedTenure: json['selected_tenure'] as int?,
       maturityBonusPercentage: (json['maturity_bonus_percentage'] as num?)?.toDouble(),
+      rejectionReason: json['rejection_reason'] as String?,
       adminBankDetails: json['admin_bank_details'] as Map<String, dynamic>?,
     );
   }
@@ -268,6 +273,7 @@ class InvestorRequest {
       'transaction_date': transactionDate?.toIso8601String(),
       'selected_tenure': selectedTenure,
       'maturity_bonus_percentage': maturityBonusPercentage,
+      'rejection_reason': rejectionReason,
       'admin_bank_details': adminBankDetails,
     };
   }

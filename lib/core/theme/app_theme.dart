@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Premium Fintech Palette (Light)
-  static const Color _primaryLight = Color(0xFF1E3A8A); // Deep Royal Blue
-  static const Color _primaryContainerLight = Color(0xFFDBEAFE); // Soft Blue White
-  static const Color _secondaryLight = Color(0xFF0F766E); // Teal
-  static const Color _secondaryContainerLight = Color(0xFFCCFBF1); // Soft Teal
-  static const Color _tertiaryLight = Color(0xFFD97706); // Amber
-  static const Color _tertiaryContainerLight = Color(0xFFFEF3C7); // Soft Amber
-  static const Color _scaffoldBackgroundLight = Color(0xFFF8FAFC); // Cool Slate White
+  // Premium Fintech Palette (Light) - Enhanced
+  static const Color _primaryLight = Color(0xFF1565C0); // Rich Blue
+  static const Color _primaryContainerLight = Color(0xFFE3F2FD); // Light Blue
+  static const Color _secondaryLight = Color(0xFF00695C); // Teal
+  static const Color _secondaryContainerLight = Color(0xFFE0F2F1); // Soft Teal
+  static const Color _tertiaryLight = Color(0xFFEF6C00); // Orange
+  static const Color _tertiaryContainerLight = Color(0xFFFFF3E0); // Soft Orange
+  static const Color _scaffoldBackgroundLight = Color(0xFFF0F4F8); // Blue-ish Grey (More colorful than slate)
 
   // Premium Fintech Palette (Dark)
-  static const Color _primaryDark = Color(0xFF60A5FA); // Lighter Blue for Dark Mode
-  static const Color _primaryContainerDark = Color(0xFF1E3A8A);
-  static const Color _secondaryDark = Color(0xFF2DD4BF); // Lighter Teal
-  static const Color _secondaryContainerDark = Color(0xFF0F766E);
-  static const Color _scaffoldBackgroundDark = Color(0xFF0F172A); // Deep Slate Navy
+  static const Color _primaryDark = Color(0xFF90CAF9); // Light Blue
+  static const Color _primaryContainerDark = Color(0xFF0D47A1);
+  static const Color _secondaryDark = Color(0xFF80CBC4); // Light Teal
+  static const Color _secondaryContainerDark = Color(0xFF004D40);
+  static const Color _scaffoldBackgroundDark = Color(0xFF0A1929); // Deep Navy
 
   static ThemeData get lightTheme {
     return FlexThemeData.light(
@@ -28,14 +28,14 @@ class AppTheme {
         secondaryContainer: _secondaryContainerLight,
         tertiary: _tertiaryLight,
         tertiaryContainer: _tertiaryContainerLight,
-        appBarColor: _scaffoldBackgroundLight, 
-        error: Color(0xFFB91C1C),
+        appBarColor: Colors.white, 
+        error: Color(0xFFB00020),
       ),
-      surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
-      blendLevel: 5,
+      surfaceMode: FlexSurfaceMode.highScaffoldLowSurface,
+      blendLevel: 10, // Increased blend for more color
       subThemesData: FlexSubThemesData(
-        blendOnLevel: 10,
-        blendOnColors: false,
+        blendOnLevel: 20,
+        blendOnColors: true, // Blend colors into surfaces
         useTextTheme: true,
         useM2StyleDividerInM3: true,
         alignedDropdown: true,
@@ -50,7 +50,7 @@ class AppTheme {
         fabUseShape: true,
         fabAlwaysCircular: true,
         chipSchemeColor: SchemeColor.primary,
-        cardElevation: 1.5,
+        cardElevation: 3, // Higher elevation
       ),
       keyColors: const FlexKeyColors(
         useSecondary: true,
@@ -63,7 +63,8 @@ class AppTheme {
       fontFamily: GoogleFonts.outfit().fontFamily ?? GoogleFonts.inter().fontFamily,
       scaffoldBackground: _scaffoldBackgroundLight,
     ).copyWith(
-      cardColor: Colors.white, // Explicitly set card color
+      cardColor: Colors.white, 
+      scaffoldBackgroundColor: _scaffoldBackgroundLight,
       appBarTheme: const AppBarTheme(
         backgroundColor: _scaffoldBackgroundLight,
         scrolledUnderElevation: 0,

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
 import 'package:investorapp_eminates/features/dashboard/providers/dashboard_provider.dart';
 import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
+import 'package:intl/intl.dart';
 
 class PlansScreen extends ConsumerStatefulWidget {
   const PlansScreen({super.key});
@@ -63,9 +64,9 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                        textAlign: TextAlign.center,
                      ),
                    ),
-                   const SizedBox(height: 24),
+                   const SizedBox(height: 0),
                    SizedBox(
-                     height: 620, // Increased height to prevent overflow with Admin button
+                     height: 600, 
                      child: PageView.builder(
                        controller: _pageController,
                        itemCount: _plans.length,
@@ -73,12 +74,15 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                          setState(() => _currentPage = index);
                        },
                        itemBuilder: (context, index) {
-                         return _buildPlanCard(_plans[index], index == _currentPage);
+                         return Padding(
+                           padding: const EdgeInsets.only(bottom: 20), // Add padding for shadow/elevation
+                           child: _buildPlanCard(_plans[index], index == _currentPage),
+                         );
                        },
                        padEnds: true,
                      ),
                    ),
-                   const SizedBox(height: 24),
+                   const SizedBox(height: 6),
                    // Page Indicator
                    Row(
                      mainAxisAlignment: MainAxisAlignment.center,
@@ -95,35 +99,35 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                        );
                      }),
                    ),
-                   const SizedBox(height: 20),
+                   const SizedBox(height: 100), // Huge bottom space to clear bottom nav overlap
                  ],
-              ),
-            ),
-          ),
-        ],
-      ),
+               ),
+             ),
+           ),
+         ],
+       ),
     );
   }
 
   Widget _buildPlanCard(InvestmentPlan plan, bool isActive) {
+    // ... existing colors ...
     // Determine card gradient/color based on plan name
     List<Color> gradientColors;
     Color textColor;
 
     if (plan.name.contains('Silver')) {
-       gradientColors = [const Color(0xFFF5F5F5), const Color(0xFFCFD8DC)]; // Silver-ish
+       gradientColors = [const Color(0xFFF5F5F5), const Color(0xFFCFD8DC)]; 
        textColor = Colors.black87;
     } else if (plan.name.contains('Gold')) {
-       gradientColors = [const Color(0xFFFFECB3), const Color(0xFFFFCA28)]; // Gold
+       gradientColors = [const Color(0xFFFFECB3), const Color(0xFFFFCA28)]; 
        textColor = Colors.brown.shade900;
     } else if (plan.name.contains('Platinum')) {
-       gradientColors = [const Color(0xFFE3F2FD), const Color(0xFF90CAF9)]; // Platinum/Blueish
+       gradientColors = [const Color(0xFFE3F2FD), const Color(0xFF90CAF9)]; 
        textColor = Colors.indigo.shade900;
     } else if (plan.name.contains('Elite')) {
-       gradientColors = [const Color(0xFFEDE7F6), const Color(0xFF9575CD)]; // Deep Purple
+       gradientColors = [const Color(0xFFEDE7F6), const Color(0xFF9575CD)]; 
        textColor = Colors.deepPurple.shade900;
     } else {
-       // Default Brand Gradient
        gradientColors = [
          Theme.of(context).primaryColor.withOpacity(0.1),
          Theme.of(context).primaryColor.withOpacity(0.3)
@@ -131,6 +135,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
        textColor = Theme.of(context).primaryColor;
     }
 
+    // Default amount for display
     final displayAmount = plan.minAmount ?? 100000;
     
     // Calculate payouts
@@ -142,7 +147,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       scale: isActive ? 1.0 : 0.9,
       duration: const Duration(milliseconds: 300),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -159,7 +164,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
             // Header with Gradient
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20), // Reduce padding
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: gradientColors,
@@ -173,23 +178,24 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                   Text(
                     plan.name,
                     style: GoogleFonts.outfit(
-                      fontSize: 24, 
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    plan.amountWithSymbol,
-                    style: GoogleFonts.outfit(
-                      fontSize: 32,
+                      fontSize: 22, // Reduce font
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
+                  Text(
+                     // Show Tenure Based Text instead of fixed amount
+                    '${plan.tenure} Plan', 
+                    style: GoogleFonts.outfit(
+                      fontSize: 24, // Reduce font
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(20),
@@ -205,10 +211,10 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
             
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(16.0), // Reduce padding
                 child: Column(
                   children: [
-                     _buildFeatureRow('Tenure', plan.tenure),
+                     _buildFeatureRow('Min. Investment', '₹${NumberFormat.compact(locale: 'en_IN').format(plan.minAmount ?? 0)}'),
                      const Divider(),
                      const SizedBox(height: 8),
 
@@ -216,26 +222,14 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                      Align(
                        alignment: Alignment.centerLeft,
                        child: Text(
-                         'Estimated Returns',
+                         'Estimated Returns (on ₹1L)',
                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey[800]),
                        ),
                      ),
-                     const SizedBox(height: 12),
+                     const SizedBox(height: 8),
                      _buildPayoutRow('Monthly', '₹$monthly'),
                      _buildPayoutRow('Quarterly', '₹$quarterly'),
-                     _buildPayoutRow('Half-Yearly', '₹$halfYearly'),
                      
-                     if (plan.description != null) ...[
-                       const SizedBox(height: 16),
-                       Text(
-                         plan.description!,
-                         style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey[600], fontSize: 13),
-                         textAlign: TextAlign.center,
-                         maxLines: 2,
-                         overflow: TextOverflow.ellipsis,
-                       ),
-                     ],
-
                      const Spacer(),
 
                      // Action Links
@@ -248,7 +242,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                          style: ElevatedButton.styleFrom(
                            backgroundColor: Colors.black, // Sleek black button
                            foregroundColor: Colors.white,
-                           padding: const EdgeInsets.symmetric(vertical: 16),
+                           padding: const EdgeInsets.symmetric(vertical: 14),
                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                          ),
                          child: const Text('View Details'),

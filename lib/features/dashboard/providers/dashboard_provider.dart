@@ -20,3 +20,26 @@ final allRequestsProvider = FutureProvider<List<InvestorRequest>>((ref) async {
   if (!isAdmin) return [];
   return ref.watch(investorRepositoryProvider).getAllRequests();
 });
+
+final plansProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  return ref.watch(investorRepositoryProvider).getInvestmentPlans();
+});
+
+final userRoleProvider = FutureProvider<String?>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return null;
+  final supabase = Supabase.instance.client;
+  try {
+    final response = await supabase.from('users').select('role').eq('id', user.id).single();
+    return response['role'] as String?;
+  } catch (e) {
+    return null;
+  }
+});
+
+final userProfileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser; // Use direct auth or provider
+  if (user == null) return null;
+  return await supabase.from('users').select('*').eq('id', user.id).single();
+});

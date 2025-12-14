@@ -24,7 +24,11 @@ class PayoutHistoryScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Payout History')),
       body: payoutsAsync.when(
-        data: (payouts) {
+        data: (originalPayouts) {
+          final payouts = isAdminAsync.value == true 
+              ? originalPayouts 
+              : originalPayouts.where((p) => p.type.toLowerCase() != 'commission').toList();
+
           if (payouts.isEmpty) {
             return const Center(child: Text('No payouts recorded yet'));
           }

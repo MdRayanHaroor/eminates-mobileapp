@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:google_fonts/google_fonts.dart'; // Ensure font usage
+import 'package:google_fonts/google_fonts.dart';
 import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
 import 'package:investorapp_eminates/features/dashboard/agent_dashboard_screen.dart';
 import 'package:investorapp_eminates/features/dashboard/admin_dashboard_screen.dart';
@@ -11,39 +11,15 @@ import 'package:investorapp_eminates/features/dashboard/providers/dashboard_prov
 import 'package:investorapp_eminates/features/dashboard/providers/notification_provider.dart';
 import 'package:investorapp_eminates/features/onboarding/providers/onboarding_provider.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
-import 'package:investorapp_eminates/repositories/investor_repository.dart';
-import 'package:investorapp_eminates/features/onboarding/providers/walkthrough_provider.dart';
 import 'package:investorapp_eminates/core/services/update_service.dart';
 import 'package:investorapp_eminates/core/widgets/update_dialog.dart';
+import 'package:investorapp_eminates/core/providers/theme_provider.dart';
 
-final userRoleProvider = FutureProvider<String?>((ref) async {
-  // Watch the current user so this provider rebuilds on logout/login
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return null;
-  
-  final supabase = Supabase.instance.client;
-
-  try {
-    final response = await supabase
-      .from('users')
-      .select('role') // Optimized select
-      .eq('id', user.id)
-      .single();
-      
-    return response['role'] as String?;
-  } catch (e) {
-    debugPrint('ERROR fetching role: $e');
-    throw e; // Let UI show error
-  }
-});
-
-final userProfileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
-  final supabase = Supabase.instance.client;
-  final user = supabase.auth.currentUser;
-  if (user == null) return null;
-  // Fail accurately too
-  return await supabase.from('users').select('*').eq('id', user.id).single();
-});
+import 'widgets/dashboard_sidebar.dart';
+import 'widgets/auto_sliding_plans.dart';
+import 'widgets/request_card.dart';
+import 'widgets/portfolio_summary.dart';
+import 'package:investorapp_eminates/features/plans/plans_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -54,26 +30,58 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _checkedWalkthrough = false;
+  int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       _checkForUpdates();
+       // Initial check if data already available
+       _initialWalkthroughCheck();
+    });
+  }
+
+  void _initialWalkthroughCheck() {
+    final roleAsync = ref.read(userRoleProvider);
+    // Explicitly check for 'user'. If null (loading/unknown), wait. 
+    // If 'agent' or 'admin', do NOT show.
+    if (roleAsync.hasValue && roleAsync.value == 'user') {
+      _triggerWalkthrough();
+    }
+  }
+
+  void _triggerWalkthrough() {
+    if (_checkedWalkthrough) return;
+    _checkedWalkthrough = true;
+    if (mounted) context.push('/walkthrough');
+  }
+
+  Future<void> _checkForUpdates() async {
+    final updateInfo = await ref.read(updateServiceProvider).checkForUpdate();
+    if (updateInfo != null && mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: !updateInfo.forceUpdate,
+        builder: (context) => UpdateDialog(updateInfo: updateInfo),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final roleAsync = ref.watch(userRoleProvider);
     final user = ref.watch(currentUserProvider);
     final requestsAsync = ref.watch(userRequestsProvider);
+    final theme = Theme.of(context);
 
-    // Listen to walkthrough state
-    ref.listen(walkthroughProvider, (previous, next) {
-      if (!_checkedWalkthrough && next.hasValue && next.value == false) {
-         _checkAndNavigate();
+    // Listen for role changes to trigger walkthrough if not yet done
+    ref.listen(userRoleProvider, (prev, next) {
+      if (next.value == 'user') {
+         _triggerWalkthrough();
       }
     });
-
-    if (!_checkedWalkthrough) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-           _checkAndNavigate();
-           _checkForUpdates();
-        });
-    }
 
     return roleAsync.when(
       data: (role) {
@@ -87,34 +95,85 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
            return const AdminDashboardScreen();
         }
 
-        // Default: User Dashboard
+        // User Dashboard with Vibrant Theme
         return Scaffold(
-          extendBodyBehindAppBar: true, // Allow gradient to go behind AppBar
-          appBar: _buildAppBar(context, ref, actualRole),
-          body: _buildUserDashboard(context, ref, user?.email, requestsAsync),
-          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-          floatingActionButton: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildFab(
-                  context, 
-                  'Plans', 
-                  Icons.explore_outlined, 
-                  () => context.push('/plans'),
-                  isPrimary: false,
+          key: _scaffoldKey,
+          backgroundColor: theme.scaffoldBackgroundColor,
+          drawer: const DashboardSidebar(),
+          appBar: AppBar(
+            backgroundColor: theme.primaryColor,
+            elevation: 0,
+            leading: IconButton(
+              icon: CircleAvatar(
+                backgroundColor: Colors.white.withOpacity(0.2),
+                child: const Icon(Icons.person, color: Colors.white),
+              ),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            ),
+            title: Text('Dashboard', 
+                style: GoogleFonts.outfit(
+                   fontWeight: FontWeight.bold, 
+                   color: Colors.white
+                )
+            ),
+            actions: [
+                 IconButton(
+                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                  onPressed: () => context.push('/notifications'),
                 ),
-                _buildFab(
-                  context, 
-                  'New Investment', 
-                  Icons.add, 
-                  () {
-                    ref.read(onboardingFormProvider.notifier).resetState();
-                    ref.read(onboardingStepProvider.notifier).state = 0;
-                    context.push('/onboarding');
-                  },
-                  isPrimary: true,
+            ],
+          ),
+          body: _buildBody(actualRole, requestsAsync),
+          floatingActionButton: (_selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 2) 
+            ? FloatingActionButton.extended(
+                onPressed: () => context.push('/onboarding'),
+                label: const Text('Add Investment'),
+                icon: const Icon(Icons.add),
+                backgroundColor: theme.primaryColor,
+                foregroundColor: Colors.white,
+              )
+            : null,
+          bottomNavigationBar: NavigationBarTheme(
+            data: NavigationBarThemeData(
+               labelTextStyle: MaterialStateProperty.all(
+                  GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w500)
+               ),
+               indicatorColor: theme.primaryColor.withOpacity(0.2),
+               iconTheme: MaterialStateProperty.resolveWith((states) {
+                  if (states.contains(MaterialState.selected)) {
+                     return IconThemeData(color: theme.primaryColor);
+                  }
+                  return IconThemeData(color: Colors.grey.shade600);
+               }),
+            ),
+            child: NavigationBar(
+              backgroundColor: theme.cardColor,
+              elevation: 4,
+              shadowColor: Colors.black12,
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) {
+                setState(() => _selectedIndex = index);
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.pie_chart_outline),
+                  selectedIcon: Icon(Icons.pie_chart),
+                  label: 'Portfolio',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.trending_up), 
+                  selectedIcon: Icon(Icons.trending_up), 
+                  label: 'My Investment',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.article_outlined),
+                  selectedIcon: Icon(Icons.article),
+                  label: 'Plans',
                 ),
               ],
             ),
@@ -122,389 +181,173 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (err, stack) => Scaffold(body: Center(child: Text('Error loading dashboard: $err'))),
+      error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
     );
   }
 
-  Widget _buildFab(BuildContext context, String label, IconData icon, VoidCallback onPressed, {required bool isPrimary}) {
-    final theme = Theme.of(context);
-    return FloatingActionButton.extended(
-      heroTag: label,
-      onPressed: onPressed,
-      icon: Icon(icon, color: isPrimary ? Colors.white : theme.colorScheme.primary),
-      label: Text(label, style: TextStyle(color: isPrimary ? Colors.white : theme.colorScheme.primary, fontWeight: FontWeight.bold)),
-      backgroundColor: isPrimary ? theme.colorScheme.primary : Colors.white,
-      elevation: 4,
-    );
-  }
-
-  void _checkAndNavigate() {
-     if (_checkedWalkthrough) return;
-
-     final roleAsync = ref.read(userRoleProvider);
-     final walkthroughAsync = ref.read(walkthroughProvider);
-
-     if (roleAsync.hasValue && walkthroughAsync.hasValue) {
-       final role = roleAsync.value;
-       final seen = walkthroughAsync.value ?? false;
-
-       if ((role == 'user' || role == null) && !seen) {
-         _checkedWalkthrough = true;
-         if (mounted) {
-            context.go('/walkthrough');
-         }
-       } else if (walkthroughAsync.hasValue) {
-          _checkedWalkthrough = true;
-       }
-     }
-  }
-
-  Future<void> _checkForUpdates() async {
-    // Only check if we are on Android for now (as per plan/request)
-    // iOS updates usually handled by App Store
-    // But check service works for both if configured in DB.
-    
-    final updateInfo = await ref.read(updateServiceProvider).checkForUpdate();
-    if (updateInfo != null && mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: !updateInfo.forceUpdate,
-        builder: (context) => UpdateDialog(updateInfo: updateInfo),
-      );
+  Widget _buildBody(String role, AsyncValue<List<InvestorRequest>> requestsAsync) {
+    switch (_selectedIndex) {
+      case 0: // Home
+        return _buildHomeView(requestsAsync);
+      case 1: // Portfolio (Confirmed) - Now includes Summary
+        return _buildPortfolioView(requestsAsync);
+      case 2: // My Investment (Others)
+        return _buildFilteredList(requestsAsync, (r) => r.status.toLowerCase() != 'investment confirmed', 'No active requests.');
+      case 3: // Plans (Replaces Settings)
+        return const PlansScreen();
+      default:
+        return const SizedBox.shrink();
     }
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, WidgetRef ref, String role) {
-     return AppBar(
-        backgroundColor: Colors.transparent, // Transparent for gradient
-        elevation: 0,
-        title: Text(
-          'Dashboard', 
-          style: GoogleFonts.outfit(
-            color: Colors.white, 
-            fontWeight: FontWeight.bold
-          )
-        ),
-        actions: [
-          Consumer(
-            builder: (context, ref, child) {
-              final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
-              final count = unreadCountAsync.valueOrNull ?? 0;
-
-              return IconButton(
-                icon: Badge(
-                  isLabelVisible: count > 0,
-                  label: Text('$count'),
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  child: const Icon(Icons.notifications_outlined, color: Colors.white),
+  Widget _buildHomeView(AsyncValue<List<InvestorRequest>> requestsAsync) {
+     return RefreshIndicator(
+       onRefresh: () async {
+          ref.refresh(userRequestsProvider);
+          ref.refresh(plansProvider);
+       },
+       child: SingleChildScrollView(
+         physics: const AlwaysScrollableScrollPhysics(),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+              const SizedBox(height: 16),
+              const AutoSlidingPlans(),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Recent Requests',
+                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                onPressed: () => context.push('/notifications'),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () {
-               // Logout logic... kept simple
-               ref.read(authRepositoryProvider).signOut();
-               if(context.mounted) context.go('/login');
-            },
-          ),
-        ],
-      );
+              ),
+              const SizedBox(height: 12),
+              // List of all requests
+              requestsAsync.when(
+                data: (requests) {
+                  if (requests.isEmpty) {
+                     return const Padding(
+                       padding: EdgeInsets.all(32.0),
+                       child: Center(child: Text('No investment requests yet.')),
+                     );
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: requests.length,
+                    itemBuilder: (context, index) {
+                       return RequestCard(request: requests[index]);
+                    },
+                  );
+                },
+                loading: () => const Center(child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(),
+                )),
+                error: (e, s) => Center(child: Text('Error: $e')),
+              ),
+              const SizedBox(height: 80),
+           ],
+         ),
+       ),
+     );
   }
 
+  Widget _buildFilteredList(AsyncValue<List<InvestorRequest>> requestsAsync, bool Function(InvestorRequest) filter, String emptyMsg) {
+    return requestsAsync.when(
+      data: (requests) {
+         final filtered = requests.where((r) => filter(r)).toList();
+         if (filtered.isEmpty) {
+            return RefreshIndicator(
+               onRefresh: () async => ref.refresh(userRequestsProvider),
+               child: Stack(
+                 children: [
+                   ListView(), // Empty list view for pull to refresh physics
+                   Center(child: Column(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                     children: [
+                       const Icon(Icons.folder_open, size: 64, color: Colors.grey),
+                       const SizedBox(height: 16),
+                       Text(emptyMsg, style: const TextStyle(color: Colors.grey)),
+                     ],
+                   )),
+                 ],
+               ),
+            );
+         }
+         return RefreshIndicator(
+           onRefresh: () async => ref.refresh(userRequestsProvider),
+           child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) => RequestCard(request: filtered[index]),
+           ),
+         );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, s) => Center(child: Text('Error: $e')),
+    );
+  }
 
-  Widget _buildUserDashboard(
-    BuildContext context,
-    WidgetRef ref,
-    String? email,
-    AsyncValue<List<InvestorRequest>> requestsAsync,
-  ) {
-    final userProfileAsync = ref.watch(userProfileProvider);
-    final theme = Theme.of(context);
-
-    // Extract username from email
-    final username = email?.split('@').first ?? 'User';
-
-    return Stack(
+  Widget _buildSettingsView() {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
+    
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        // 1. Header Background Component
-        Container(
-          height: 280,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primary,
-                Color(0xFF0F172A), // Darker Navy
-              ],
-            ),
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(32),
-              bottomRight: Radius.circular(32),
-            ),
+        Card(
+          child: ListTile(
+             leading: const Icon(Icons.dark_mode),
+             title: const Text('Dark Mode'),
+             trailing: Switch(
+               value: isDark,
+               onChanged: (val) {
+                 ref.read(themeModeProvider.notifier).state = val ? ThemeMode.dark : ThemeMode.light;
+               },
+             ),
           ),
         ),
-
-        // 2. Main Content
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: kToolbarHeight + 30), // Spacer for AppBar
-            
-            // Welcome Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    (ref.watch(walkthroughProvider).valueOrNull ?? false) ? 'Welcome back,' : 'Welcome,',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    )
-                  ),
-                  const SizedBox(height: 0),
-                  Text(
-                    //show the full name from the user profile 
-                    userProfileAsync.valueOrNull?['full_name'] ?? username,
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Referral Check (if applicable)
-                  userProfileAsync.when(
-                    data: (profile) {
-                       if (profile != null && profile['referred_by'] == null && profile['role'] == 'user') {
-                         return Container(
-                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                           decoration: BoxDecoration(
-                             color: Colors.white.withOpacity(0.1),
-                             borderRadius: BorderRadius.circular(12),
-                           ),
-                           child: InkWell(
-                             onTap: () => context.push('/enter-referral'),
-                             child: Row(
-                               mainAxisSize: MainAxisSize.min,
-                               children: const [
-                                 Icon(Icons.confirmation_number, color: Colors.white, size: 16),
-                                 SizedBox(width: 8),
-                                 Text('Have a referral code?', style: TextStyle(color: Colors.white)),
-                               ],
-                             ),
-                           ),
-                         );
-                       }
-                       return const SizedBox.shrink();
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (_,__) => const SizedBox.shrink(),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Requests List Container
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                // We don't want a background color here, let the list items float
-                child: requestsAsync.when(
-                  data: (requests) {
-                    if (requests.isEmpty) {
-                      return RefreshIndicator(
-                        onRefresh: () async => ref.refresh(userRequestsProvider),
-                        child: ListView(
-                          padding: const EdgeInsets.only(top: 40),
-                          children: [
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.all(32),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(24),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
-                                    )
-                                  ]
-                                ),
-                                child: Column(
-                                  children: [
-                                    Icon(Icons.folder_open_outlined, size: 64, color: theme.colorScheme.tertiary),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No Active Investments',
-                                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    const Text('Your investment journey starts here.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    // LIST OF REQUESTS
-                    return RefreshIndicator(
-                      onRefresh: () async => ref.refresh(userRequestsProvider),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        itemCount: requests.length + 1, // +1 for extra padding at bottom
-                        itemBuilder: (context, index) {
-                          if (index == requests.length) return const SizedBox(height: 100); // FAB spacing
-                          
-                          final request = requests[index];
-                          return Hero(
-                            tag: 'request_${request.id}',
-                            child: _buildRequestCard(context, request),
-                          );
-                        },
-                      ),
-                    );
-                  },
-
-                  loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
-
-                  error: (err, stack) =>
-                      Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
-                ),
-              ),
-            ),
-          ],
-        ),
+        // Add more settings here if needed? User mainly asked for theme toggle.
       ],
     );
   }
 
-  Widget _buildRequestCard(BuildContext context, InvestorRequest request) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      color: isDark ? theme.colorScheme.surface : Colors.grey[200], // Dark: Surface, Light: Grey 200 for better contrast
-      shadowColor: theme.colorScheme.shadow.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: InkWell(
-        onTap: () {
-          // Navigation logic...
-          if (request.status == 'Draft') {
-            ref.read(onboardingFormProvider.notifier).setRequest(request);
-            // Reset step to 0 or last saved step if we tracked it (assuming 0 for now)
-            ref.read(onboardingStepProvider.notifier).state = 0;
-            context.push('/onboarding');
-          } else {
-             context.push('/request/${request.id}');
-          }
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                   Container(
-                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                     decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(8),
-                     ),
-                     child: Text(
-                        request.effectivePlanName,
-                        style: TextStyle(
-                           color: theme.colorScheme.primary,
-                           fontWeight: FontWeight.bold,
-                           fontSize: 12
-                        ),
-                     ),
-                   ),
-                   _buildStatusChip(request.status),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                   Text(
-                      '₹',
-                      style: TextStyle(
-                         color: theme.colorScheme.secondary,
-                         fontSize: 20,
-                         fontWeight: FontWeight.bold,
+  Widget _buildPortfolioView(AsyncValue<List<InvestorRequest>> requestsAsync) {
+    return requestsAsync.when(
+      data: (requests) {
+         final confirmed = requests.where((r) => r.status.toLowerCase() == 'investment confirmed').toList();
+         
+         return RefreshIndicator(
+           onRefresh: () async => ref.refresh(userRequestsProvider),
+           child: CustomScrollView(
+             slivers: [
+               SliverToBoxAdapter(
+                 child: PortfolioSummary(requests: requests),
+               ),
+               if (confirmed.isEmpty)
+                  const SliverFillRemaining(
+                    child: Center(child: Text('No active investments yet.')),
+                  )
+               else
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: RequestCard(request: confirmed[index]),
                       ),
-                   ),
-                   const SizedBox(width: 4),
-                   Text(
-                      request.parsedAmount.toStringAsFixed(0),
-                      style: GoogleFonts.outfit(
-                         color: theme.textTheme.titleLarge?.color, // Adaptive text color
-                         fontSize: 32,
-                         fontWeight: FontWeight.bold,
-                      ),
-                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Created on ${DateFormat.yMMMd().format(request.createdAt ?? DateTime.now())}',
-                 style: TextStyle(color: Colors.grey[500], fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-      ),
+                      childCount: confirmed.length,
+                    ),
+                  ),
+                const SliverToBoxAdapter(child: SizedBox(height: 80)), // Space for FAB
+             ],
+           ),
+         );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, s) => Center(child: Text('Error: $e')),
     );
-  }
-
-  Widget _buildStatusChip(String status) {
-    Color color = _getStatusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.5)),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 10,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved': return Colors.blue;
-      case 'rejected': return Colors.red;
-      case 'utr submitted': return Colors.purple;
-      case 'investment confirmed': return Colors.green;
-      default: return Colors.amber[800]!;
-    }
   }
 }

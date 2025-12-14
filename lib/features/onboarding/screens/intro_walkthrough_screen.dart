@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
 import 'package:investorapp_eminates/features/onboarding/providers/walkthrough_provider.dart';
 
 class IntroWalkthroughScreen extends ConsumerStatefulWidget {
@@ -66,20 +67,43 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
   }
 
   Future<void> _finishWalkthrough(String? nextRoute) async {
-    await ref.read(walkthroughProvider.notifier).markAsSeen();
+    // User requested not to change shared preference state
+    // await ref.read(walkthroughProvider.notifier).markAsSeen(); 
+    
     if (!mounted) return;
     
     if (nextRoute != null) {
       context.go(nextRoute); 
     } else {
-      context.go('/dashboard');
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/dashboard');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentSlide = _slides[_currentPage];
+    final walkthroughAsync = ref.watch(walkthroughProvider);
+    final hasSeenBefore = walkthroughAsync.valueOrNull ?? false;
+
+    // Update slides text dynamically if seen before
+    final displaySlides = List<Map<String, dynamic>>.from(_slides);
+    if (hasSeenBefore) {
+      displaySlides[0] = {
+        ...displaySlides[0],
+        'title': 'Welcome Back to Eminates',
+      };
+      displaySlides[3] = {
+        ...displaySlides[3],
+        'action_label': 'Proceed', // Custom key for button label
+      };
+    }
+
+    final currentSlide = displaySlides[_currentPage];
     final color = currentSlide['color'] as Color;
+    final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -103,18 +127,44 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
             ),
           ),
 
-          // Skip Button
+          // Top Actions (Skip & Logout)
           Positioned(
-            top: 50,
-            right: 20,
-            child: TextButton(
-              onPressed: () => _finishWalkthrough(null),
-              child: Text(
-                'SKIP',
-                style: GoogleFonts.outfit(
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                         if (context.canPop()) {
+                           context.pop();
+                         } else {
+                           context.go('/dashboard');
+                         }
+                      },
+                      child: Text(
+                        'SKIP',
+                        style: GoogleFonts.outfit(
+                          color: theme.primaryColor, 
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    Container(width: 1, height: 20, color: Colors.grey[400]),
+                    IconButton(
+                      onPressed: () {
+                         ref.read(authRepositoryProvider).signOut();
+                         if (context.mounted) context.go('/login'); 
+                      },
+                      icon: Icon(Icons.logout, size: 20, color: theme.colorScheme.error),
+                      tooltip: 'Logout',
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -124,9 +174,9 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
           PageView.builder(
             controller: _pageController,
             onPageChanged: _onPageChanged,
-            itemCount: _slides.length,
+            itemCount: displaySlides.length,
             itemBuilder: (context, index) {
-              return _buildSlide(_slides[index]);
+              return _buildSlide(displaySlides[index]);
             },
           ),
 
@@ -140,7 +190,7 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
                 // Page Indicator
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_slides.length, (index) {
+                  children: List.generate(displaySlides.length, (index) {
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -177,7 +227,7 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
                     // Primary Action Button (Next or Finish)
                     ElevatedButton(
                          onPressed: () {
-                          if (_currentPage < _slides.length - 1) {
+                          if (_currentPage < displaySlides.length - 1) {
                             _pageController.nextPage(
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeInOut,
@@ -200,21 +250,23 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              _currentPage == _slides.length - 1 ? 'GET STARTED' : 'NEXT',
+                              _currentPage == displaySlides.length - 1 
+                                ? (displaySlides[_currentPage]['action_label'] ?? 'GET STARTED') 
+                                : 'NEXT',
                               style: GoogleFonts.outfit(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
-                            if (_currentPage < _slides.length - 1) ...[
+                            if (_currentPage < displaySlides.length - 1) ...[
                               const SizedBox(width: 8),
                               const Icon(Icons.arrow_forward, size: 18),
                             ]
                           ],
                         ),
                       )
-                      .animate(target: _currentPage == _slides.length - 1 ? 1 : 0)
-                      .shimmer(duration: 1.seconds, delay: 500.ms), // Subtle shimmer on last button
+                      .animate(target: _currentPage == displaySlides.length - 1 ? 1 : 0)
+                      .shimmer(duration: 1.seconds, delay: 500.ms), 
                   ],
                 ),
               ],
@@ -288,15 +340,24 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
 
           const SizedBox(height: 32),
 
-          // Specific Action Buttons for Slide 2 and 4
-          if (slide.containsKey('action'))
+            if (slide.containsKey('action'))
             OutlinedButton(
               onPressed: () {
                 final action = slide['action'];
                 if (action == 'View Plans') {
-                  _finishWalkthrough('/plans');
+                  context.go('/dashboard');
+                  // Post frame callback to push next screen so back button works for dashboard
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (context.mounted) context.push('/plans');
+                  });
                 } else if (action == 'Add Investment Request') {
-                  _finishWalkthrough('/onboarding'); // Verify if this maps to a valid route logic, or needs set state
+                  context.go('/dashboard');
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (context.mounted) {
+                       // Reset onboarding state if needed
+                       context.push('/onboarding');
+                    }
+                  });
                 }
               },
               style: OutlinedButton.styleFrom(

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:investorapp_eminates/features/onboarding/models/investment_plan.dart';
 import 'package:investorapp_eminates/features/onboarding/providers/onboarding_provider.dart';
 import 'package:investorapp_eminates/features/plans/providers/plans_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class StepInvestment extends ConsumerStatefulWidget {
   const StepInvestment({super.key});
@@ -12,55 +12,50 @@ class StepInvestment extends ConsumerStatefulWidget {
   ConsumerState<StepInvestment> createState() => _StepInvestmentState();
 }
 
-
-
 class _StepInvestmentState extends ConsumerState<StepInvestment> {
   double _currentSliderValue = 100000;
-  String? _selectedPlanName;
+  String? _selectedPlanId;
   final _customAmountController = TextEditingController();
-  
-  // Cache the plans to avoid flicker if they don't change often, or just use provider state
-  // List<InvestmentPlan> _plans = []; // No longer needed as state, derive from provider
-
-  
-  // Plans are now fetched from provider
-
-
   final FocusNode _amountFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     final state = ref.read(onboardingFormProvider);
-    final currentAmount = state.investmentAmount;
     
-    if (state.planName != null) {
-       _selectedPlanName = state.planName;
-    }
-
+    // Initialize amount (handle commas/symbols)
+    final currentAmount = state.investmentAmount;
     if (currentAmount != null && currentAmount.isNotEmpty) {
       final regex = RegExp(r'₹([\d,]+)');
       final match = regex.firstMatch(currentAmount);
+      String cleanAmount = '';
       if (match != null) {
-        final cleanAmount = match.group(1)?.replaceAll(',', '') ?? '';
-        _customAmountController.text = cleanAmount;
+        cleanAmount = match.group(1)?.replaceAll(',', '') ?? '';
       } else {
-         // handle plain
-         _customAmountController.text = currentAmount.replaceAll(',', '');
+         cleanAmount = currentAmount.replaceAll(',', '');
       }
+      
+      _customAmountController.text = cleanAmount;
+      final amt = double.tryParse(cleanAmount) ?? 0;
+      if (amt >= 100000 && amt <= 1000000) _currentSliderValue = amt;
+      if (amt > 1000000) _currentSliderValue = 1000000;
+      if (amt < 100000) _currentSliderValue = 100000;
+    }
+
+    // Initialize Plan (we might identify by Name or ID, usually Name in this app's legacy)
+    // We'll trust the provider State identifying the plan.
+    if (state.planName != null) {
+       // We'll sync ID in the build method or lookup
     }
 
     _amountFocusNode.addListener(_onFocusChange);
     _customAmountController.addListener(_onAmountChanged);
   }
 
-  void _onFocusChange() {
-    // Logic optional now, or fetch plan from provider state if needed
-  }
+  void _onFocusChange() {}
 
   @override
   void dispose() {
-    _amountFocusNode.removeListener(_onFocusChange);
     _amountFocusNode.dispose();
     _customAmountController.removeListener(_onAmountChanged);
     _customAmountController.dispose();
@@ -68,73 +63,106 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   }
 
   void _onAmountChanged() {
-    if (_selectedPlanName != null && _customAmountController.text.isNotEmpty) {
-       final cleanAmount = _customAmountController.text.replaceAll(',', '');
+    // Only update provider when valid
+    final amountText = _customAmountController.text.replaceAll(',', '');
+    if (amountText.isNotEmpty) {
+        // We defer full update to _onPlanSelected or just update amount here
+        // If a plan is already selected, we should re-trigger update to ensure calcs are fresh
+        if (_selectedPlanId != null) {
+           // We need to access the plan object to pass correct details.
+           // Since we don't have it easily here without context, let's just update amount string.
+           // Ideally, we'd update everything together.
+        }
+        
+        // Minimal update to store amount in provider
        ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-          investmentAmount: cleanAmount, 
-          planName: _selectedPlanName,
+          investmentAmount: amountText, 
        );
     }
   }
 
-  void _onPlanSelected(InvestmentPlan plan) {
-    setState(() {
-      _selectedPlanName = plan.name;
-    });
-    // Trigger update to set path correct
-    if (_customAmountController.text.isNotEmpty) {
-       _onAmountChanged();
-    }
-  }
+  void _onPlanInput(InvestmentPlan plan) {
+      setState(() {
+        _selectedPlanId = plan.id;
+      });
+      
+      final amountText = _customAmountController.text.replaceAll(',', '');
+      
+      // Convert tenure string "3 Years" to months int
+      int months = 12; // default
+      final tenureStr = plan.tenure; // e.g. "3 Years" or "36 Months"
+      if (tenureStr.toLowerCase().contains('year')) {
+          final parts = tenureStr.split(' ');
+          if (parts.isNotEmpty) {
+             final years = int.tryParse(parts[0]) ?? 1;
+             months = years * 12;
+          }
+      } else if (tenureStr.toLowerCase().contains('month')) {
+          final parts = tenureStr.split(' ');
+          if (parts.isNotEmpty) {
+             months = int.tryParse(parts[0]) ?? 12;
+          }
+      }
 
-  Future<void> _viewPlanDetails(InvestmentPlan plan) async {
-    // Pass fromOnboarding: true so PlanDetails just pops back with result (although popping is less relied upon now that we update provider)
-    await context.push('/plan-details', extra: {'plan': plan, 'fromOnboarding': true});
+      ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+          investmentAmount: amountText, 
+          planName: plan.name,
+          selectedTenure: months, // Ensure this is int
+      );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Determine selected plan from provider if local state is null (initial load)
+    final state = ref.watch(onboardingFormProvider);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Section A: Investment Package', style: Theme.of(context).textTheme.titleLarge),
+        Text('Investment Details', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text('Select a plan and enter the amount you wish to invest.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
-        const SizedBox(height: 16),
+        Text('Enter the amount you wish to invest and select a tenure plan.', 
+             style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 14)),
+        const SizedBox(height: 24),
         
         // Amount Input & Slider Section
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            boxShadow: [
+               BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+            ]
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Investment Amount', style: Theme.of(context).textTheme.titleMedium),
+              Text('Investment Amount', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 16)),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _customAmountController,
                 focusNode: _amountFocusNode,
-                decoration: const InputDecoration(
-                  labelText: 'Enter Amount (Min ₹1,00,000)',
+                style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  labelText: 'Enter Amount',
+                  hintText: 'Min ₹1,00,000',
                   prefixText: '₹ ',
-                  border: OutlineInputBorder(),
-                  helperText: 'Enter amount or use slider below',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (val) {
-                  // Update slider position when text changes
                   final amount = double.tryParse(val.replaceAll(',', '')) ?? 0;
                   setState(() {
                     if (amount >= 100000 && amount <= 1000000) {
                       _currentSliderValue = amount;
                     } else if (amount > 1000000) {
-                      _currentSliderValue = 1000000; // Max out slider
+                      _currentSliderValue = 1000000;
                     } else if (amount < 100000) {
-                      _currentSliderValue = 100000; // Min slider
+                      _currentSliderValue = 100000;
                     }
                   });
                 },
@@ -150,35 +178,36 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('1L', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                  Text('10L+', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  Text('₹1L', style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('₹10L+', style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   activeTrackColor: Theme.of(context).primaryColor,
-                  inactiveTrackColor: Colors.grey[300],
+                  inactiveTrackColor: Colors.grey[200],
                   thumbColor: Theme.of(context).primaryColor,
                   overlayColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                  trackHeight: 4.0,
+                  trackHeight: 6.0,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12.0),
                 ),
                 child: Slider(
                   value: _currentSliderValue,
                   min: 100000,
                   max: 1100000, // Extended range for 10L+
-                  divisions: 100, // increments of ~10k
+                  divisions: 100, 
                   label: _currentSliderValue >= 1100000 ? '10L+' : '₹${(_currentSliderValue/1000).toStringAsFixed(0)}k',
                   onChanged: (double value) {
                     setState(() {
                       _currentSliderValue = value;
                       String formatted;
                       if (value >= 1100000) {
-                         formatted = '1100000'; // Show actual max value
+                         formatted = '1100000'; 
                       } else {
                          formatted = value.toInt().toString();
                       }
                       _customAmountController.text = formatted;
-                      _onAmountChanged(); // trigger provider update
+                      _onAmountChanged(); 
                     });
                   },
                 ),
@@ -187,169 +216,101 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
           ),
         ),
         
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
 
         // Plans List
-        Text('Available Plans', style: Theme.of(context).textTheme.titleMedium),
+        Text('Select Tenure', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         
-        // Dynamic Plans Fetch
         ref.watch(plansProvider).when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, stack) => Center(child: Text('Error loading plans: $err')),
           data: (plansList) {
-            // Sort Logic: Prioritize plans matching the amount
-            final amount = double.tryParse(_customAmountController.text.replaceAll(',', '')) ?? 0;
-            final sortedPlans = List<InvestmentPlan>.from(plansList);
-            
-            if (amount > 0) {
-              sortedPlans.sort((a, b) {
-                // Check if plan matches range
-                bool aMatches = (a.minAmount ?? 0) <= amount && (a.maxAmount == null || a.maxAmount! >= amount);
-                bool bMatches = (b.minAmount ?? 0) <= amount && (b.maxAmount == null || b.maxAmount! >= amount);
-                
-                if (aMatches && !bMatches) return -1;
-                if (!aMatches && bMatches) return 1;
-                return 0; // Maintain original order 
-              });
-            }
-
-            // Auto-select the first plan if amount changes effectively
-            // We use a microtask to avoid build-phase state updates, ensuring the UI reflects the "recommendation"
-            if (sortedPlans.isNotEmpty && _selectedPlanName != sortedPlans.first.name) {
-               // Verify if this is desirable? User asked for "first shown plan selected by default"
-               // To prevent overriding user manual click during no-sort-change, we might want to be careful.
-               // But strictly fulfilling the request:
-               Future.microtask(() {
-                 if (mounted && _selectedPlanName != sortedPlans.first.name) {
-                    setState(() {
-                      _selectedPlanName = sortedPlans.first.name;
-                      // Also update provider? No, onPlanSelected does that, we just update local state.
-                      // But we should sync provider if needed.
-                      ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(planName: _selectedPlanName);
-                    });
-                 }
-               });
-            }
+             // Sort by tenure length if possible, using name or tenure field logic
+             // Assuming seeded data is Silver(3), Gold(4), Platinum(5), Elite(10)
+             // Let's sort based on minAmount just to keep consistent order or by Name
+             plansList.sort((a, b) => (a.minAmount ?? 0).compareTo(b.minAmount ?? 0));
 
             return ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: sortedPlans.length,
+              itemCount: plansList.length,
               separatorBuilder: (ctx, i) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final plan = sortedPlans[index];
-                final isSelected = _selectedPlanName == plan.name;
-                final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                final plan = plansList[index];
+                // Check if this plan is selected based on Name in provider state
+                final isSelected = state.planName == plan.name; 
                 
                 return InkWell(
-                  onTap: () => _onPlanSelected(plan), // Pass plan object directly
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
+                  onTap: () => _onPlanInput(plan),
+                  borderRadius: BorderRadius.circular(16),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: isSelected ? Theme.of(context).primaryColor : (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
+                        color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.2),
                         width: isSelected ? 2 : 1,
                       ),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       color: isSelected 
-                          ? Theme.of(context).primaryColor.withOpacity(0.05) 
-                          : (isDarkMode ? Theme.of(context).cardColor : Colors.white),
+                          ? Theme.of(context).primaryColor.withOpacity(0.04) 
+                          : Colors.white,
+                      boxShadow: isSelected 
+                          ? [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))] 
+                          : [],
                     ),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
+                             Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 Text(
                                     plan.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                                  if (plan.description != null)
-                                    Text(
-                                      plan.description!,
-                                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                    ),
-                                ],
-                              ),
-                            ),
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87),
+                                 ),
+                                 Text(
+                                   'Tenure: ${plan.tenure}', 
+                                   style: GoogleFonts.outfit(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w600, fontSize: 14)
+                                 ),
+                               ],
+                             ),
+                             if (isSelected) 
+                               Icon(Icons.check_circle, color: Theme.of(context).primaryColor, size: 28)
+                             else
+                               Icon(Icons.circle_outlined, color: Colors.grey[400], size: 28),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        const Divider(),
-                        const SizedBox(height: 8),
-                        _buildDetailRow(context, 'Tenure', plan.tenure),
-                        _buildDetailRow(context, 'Monthly', '${plan.monthlyProfitPercentage}%'),
-                        _buildDetailRow(context, 'Quarterly', '${plan.quarterlyProfitPercentage}%'),
-                        _buildDetailRow(context, 'Half-Yearly', '${plan.halfYearlyProfitPercentage}%'),
                         
                         if (isSelected) ...[
                           const SizedBox(height: 16),
-                          // Dynamic Calculation based on entered amount
+                          const Divider(),
+                          const SizedBox(height: 16),
+                          // Calculation
                           Builder(
                             builder: (context) {
-                              final amt = double.tryParse(_customAmountController.text.replaceAll(',', '')) ?? 0;
-                              if (amt > 0) {
-                                final monthly = (amt * plan.monthlyProfitPercentage / 100).toStringAsFixed(0);
-                                final quarterly = (amt * plan.quarterlyProfitPercentage / 100).toStringAsFixed(0);
-                                final halfYearly = (amt * plan.halfYearlyProfitPercentage / 100).toStringAsFixed(0);
-                                
-                                return Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Column(
+                               final amt = double.tryParse(_customAmountController.text.replaceAll(',', '')) ?? 0;
+                               if (amt > 0) {
+                                  final monthly = (amt * plan.monthlyProfitPercentage / 100).toStringAsFixed(0);
+                                  final quarterly = (amt * plan.quarterlyProfitPercentage / 100).toStringAsFixed(0);
+                                  
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('Estimated Returns for ₹$amt', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                        children: [
-                                          Column(children: [Text('Monthly'), Text('₹$monthly', style: const TextStyle(fontWeight: FontWeight.bold))]),
-                                          Column(children: [Text('Quarterly'), Text('₹$quarterly', style: const TextStyle(fontWeight: FontWeight.bold))]),
-                                          Column(children: [Text('Half-Yearly'), Text('₹$halfYearly', style: const TextStyle(fontWeight: FontWeight.bold))]),
-                                        ],
-                                      )
+                                       _buildReturnItem('Monthly', '₹$monthly'),
+                                       _buildReturnItem('Quarterly', '₹$quarterly'),
+                                       _buildReturnItem('Rate', '${plan.quarterlyProfitPercentage}% Qtr'),
                                     ],
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            }
-                          ),
-                          const SizedBox(height: 16),
-                          
-                          // Tenure Selection
-                          DropdownButtonFormField<int>(
-                            decoration: const InputDecoration(labelText: 'Select Tenure (Mandatory)', border: OutlineInputBorder()),
-                            value: ref.read(onboardingFormProvider).selectedTenure, 
-                            items: plan.tenureBonuses.keys.map((years) {
-                                 final bonus = plan.tenureBonuses[years];
-                                 return DropdownMenuItem<int>(
-                                   value: years,
-                                   child: Text('$years Years (Maturity Bonus: $bonus%)'),
-                                 );
-                            }).toList(),
-                            onChanged: (val) {
-                               if (val != null) {
-                                 ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-                                   selectedTenure: val,
-                                   maturityBonusPercentage: plan.tenureBonuses[val],
-                                 );
-                                 setState((){}); 
+                                  );
                                }
-                            },
-                            validator: (v) => v == null ? 'Please select a tenure' : null,
-                          ),
-                        ],
+                               return const Text('Enter amount to see returns');
+                            }
+                          )
+                        ]
                       ],
                     ),
                   ),
@@ -358,6 +319,7 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
             );
           },
         ),
+        
         const SizedBox(height: 24),
         Container(
           padding: const EdgeInsets.all(12),
@@ -369,12 +331,12 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.amber[800], size: 20),
+              Icon(Icons.info_outline, color: Colors.amber[900], size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Note: The chosen plan and amount must be paid exactly as specified once your request is approved. Please choose wisely as changes cannot be made later.',
-                  style: TextStyle(color: Colors.amber[900], fontSize: 13),
+                  'The amount and tenure cannot be changed once the request is approved.',
+                  style: GoogleFonts.outfit(color: Colors.amber[900], fontSize: 13),
                 ),
               ),
             ],
@@ -383,7 +345,18 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
       ],
     );
   }
-  
+
+  Widget _buildReturnItem(String label, String value) {
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+         Text(label, style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 12)),
+         const SizedBox(height: 2),
+         Text(value, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
+       ],
+     );
+  }
+
   Widget _buildDetailRow(BuildContext context, String label, String value) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Padding(

@@ -464,9 +464,9 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
          id: state.id,
          investorId: state.investorId,
          createdAt: state.createdAt,
-         updatedAt: DateTime.now(), // Fixed: Pass DateTime object, not String
+         updatedAt: DateTime.now(),
          userId: state.userId,
-         status: 'Pending', // RESET STATUS
+         status: 'Pending', // Force Status to Pending on Submission
          fullName: state.fullName,
          fatherName: state.fatherName,
          motherName: state.motherName,
@@ -507,41 +507,64 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
          nomineeContact: state.nomineeContact,
          nomineeAddress: state.nomineeAddress,
          investmentAmount: state.investmentAmount,
-         planName: state.planName, // Ensure Plan Name is preserved
+         planName: state.planName, // Use the selected plan name
          declarationPlace: state.declarationPlace,
          declarationDate: state.declarationDate,
          isConfirmed: state.isConfirmed,
       );
 
       await ref.read(investorRepositoryProvider).updateRequest(resubmissionState);
-      // We need to import request_details_screen.dart or move the provider to a shared location.
-      // However, since we can't easily move it right now without refactoring, 
-      // we can use the fact that we are in the same package.
-      // But wait, requestDetailsProvider is in request_details_screen.dart which imports this file.
-      // Circular dependency risk if we import it here.
-      
-      // Better approach: The caller of submitForm (OnboardingScreen) should handle navigation and invalidation?
-      // Or we can just refresh the list and let the user navigate back.
-      // But the user is redirected to dashboard.
-      // If they click on the request again, it should reload if we invalidate the list?
-      // No, requestDetailsProvider caches by ID.
-      
-      // Let's look at where requestDetailsProvider is defined.
-      // It's in request_details_screen.dart.
-      
-      // We can't import request_details_screen.dart here because it imports onboarding_provider.dart.
-      // We should move requestDetailsProvider to a separate file or repository provider file.
-      
-      // For now, let's just rely on the fact that when we go back to dashboard and click the item again,
-      // if we invalidate the *list*, does it invalidate the *details*? No.
-      
-      // The user says "open the updated request shows old data".
-      // This means they go Dashboard -> Details (Old) -> Edit -> Submit -> Dashboard -> Details (Old).
-      
-      // We need to invalidate the cache for that specific ID.
-      // Since we can't import the provider here, we will do it in the OnboardingScreen after submit.
     } else {
-      await ref.read(investorRepositoryProvider).createRequest(state);
+      // New creation - ensure status is Pending
+      final newRequest = InvestorRequest(
+         userId: state.userId,
+         status: 'Pending',
+         fullName: state.fullName,
+         fatherName: state.fatherName,
+         motherName: state.motherName,
+         dob: state.dob,
+         nationality: state.nationality,
+         nativePlace: state.nativePlace,
+         education: state.education,
+         occupation: state.occupation,
+         monthlyIncome: state.monthlyIncome,
+         gender: state.gender,
+         maritalStatus: state.maritalStatus,
+         addressDoorNo: state.addressDoorNo,
+         addressStreet: state.addressStreet,
+         addressCity: state.addressCity,
+         addressDistrict: state.addressDistrict,
+         addressState: state.addressState,
+         addressPincode: state.addressPincode,
+         addressLandmark: state.addressLandmark,
+         primaryMobile: state.primaryMobile,
+         alternateMobile: state.alternateMobile,
+         whatsappNumber: state.whatsappNumber,
+         emailAddress: state.emailAddress,
+         panNumber: state.panNumber,
+         aadhaarNumber: state.aadhaarNumber,
+         voterId: state.voterId,
+         passportNumber: state.passportNumber,
+         panCardUrl: state.panCardUrl,
+         aadhaarCardUrl: state.aadhaarCardUrl,
+         selfieUrl: state.selfieUrl,
+         bankName: state.bankName,
+         accountHolderName: state.accountHolderName,
+         accountNumber: state.accountNumber,
+         ifscCode: state.ifscCode,
+         branchNameLocation: state.branchNameLocation,
+         nomineeName: state.nomineeName,
+         nomineeRelationship: state.nomineeRelationship,
+         nomineeDob: state.nomineeDob,
+         nomineeContact: state.nomineeContact,
+         nomineeAddress: state.nomineeAddress,
+         investmentAmount: state.investmentAmount,
+         planName: state.planName,
+         declarationPlace: state.declarationPlace,
+         declarationDate: state.declarationDate,
+         isConfirmed: state.isConfirmed,
+      );
+      await ref.read(investorRepositoryProvider).createRequest(newRequest);
     }
     // Refresh the dashboard list
     ref.refresh(userRequestsProvider);
