@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:investorapp_eminates/core/services/update_service.dart';
 import 'package:ota_update/ota_update.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class UpdateDialog extends StatefulWidget {
@@ -18,6 +19,26 @@ class _UpdateDialogState extends State<UpdateDialog> {
   String _statusMessage = '';
 
   Future<void> _startDownload() async {
+    // START PERMISSION REQUEST
+    bool granted = false;
+    if (await Permission.storage.request().isGranted) {
+      granted = true;
+    } else if (await Permission.manageExternalStorage.request().isGranted) {
+       // Android 11+ might use this or just standard storage if scoped
+       granted = true;
+    } else if (await Permission.storage.isGranted) {
+       granted = true;
+    }
+
+    if (!granted) {
+       // Try one more time or just proceed (ota_update usually handles internal files without it, 
+       // but user specifically asked to ask "if storage is also required"). 
+       // We'll proceed if we can't get it, but we tried.
+       // Actually, let's notify if denied? No, keep it simple flow.
+       // We just ask.
+    }
+    // END PERMISSION REQUEST
+
     setState(() {
       _isDownloading = true;
       _statusMessage = 'Starting download...';

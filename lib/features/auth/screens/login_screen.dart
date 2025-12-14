@@ -158,7 +158,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Ensure white base
       body: Stack(
         children: [
             // Decorative Top Gradient
@@ -174,7 +173,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      Colors.white,
+                      Theme.of(context).scaffoldBackgroundColor,
                     ],
                   ),
                 ),
@@ -210,7 +209,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: GoogleFonts.outfit(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Theme.of(context).textTheme.titleLarge?.color,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -219,7 +218,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         'Sign in to your investor account',
                          style: GoogleFonts.outfit(
                           fontSize: 16,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
                         ),
                         textAlign: TextAlign.center,
                       ),

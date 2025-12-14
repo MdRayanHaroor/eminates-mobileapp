@@ -58,9 +58,19 @@ class InvestorRepository {
   }
 
   Future<void> updateRequest(InvestorRequest request) async {
+    final data = request.toJson();
+    // Remove immutable fields to avoid RLS/Constraint issues
+    data.remove('id');
+    data.remove('user_id');
+    data.remove('investor_id');
+    data.remove('created_at');
+    
+    // Ensure updated_at is set if not already handled by DB trigger (good practice to send from client if logic dictates)
+    data['updated_at'] = DateTime.now().toIso8601String();
+
     await _supabase
         .from('investor_requests')
-        .update(request.toJson())
+        .update(data)
         .eq('id', request.id!);
   }
 

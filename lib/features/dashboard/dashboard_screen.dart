@@ -394,20 +394,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildRequestCard(BuildContext context, InvestorRequest request) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
+      color: isDark ? theme.colorScheme.surface : Colors.grey[200], // Dark: Surface, Light: Grey 200 for better contrast
       shadowColor: theme.colorScheme.shadow.withOpacity(0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         onTap: () {
           // Navigation logic...
           if (request.status == 'Draft') {
-            // ...
-             // ref.read(onboardingFormProvider.notifier).setRequest(request); // Need to import this usage properly or just use same simple logic
-             // keeping it simple for re-write
-             context.push('/request/${request.id}'); // simplified for visual update
+            ref.read(onboardingFormProvider.notifier).setRequest(request);
+            // Reset step to 0 or last saved step if we tracked it (assuming 0 for now)
+            ref.read(onboardingStepProvider.notifier).state = 0;
+            context.push('/onboarding');
           } else {
              context.push('/request/${request.id}');
           }
@@ -456,7 +458,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                    Text(
                       request.parsedAmount.toStringAsFixed(0),
                       style: GoogleFonts.outfit(
-                         color: Colors.black87,
+                         color: theme.textTheme.titleLarge?.color, // Adaptive text color
                          fontSize: 32,
                          fontWeight: FontWeight.bold,
                       ),

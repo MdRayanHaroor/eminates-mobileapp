@@ -58,11 +58,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
          backgroundColor: Colors.transparent,
          elevation: 0,
-         iconTheme: IconThemeData(color: Colors.black87), // Ensure back arrow is visible
+         // iconTheme taken from global theme or default
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -86,7 +85,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87
+                      color: Theme.of(context).textTheme.titleLarge?.color
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -96,7 +95,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     'Start your investment journey today.',
                     style: GoogleFonts.outfit(
                       fontSize: 16,
-                      color: Colors.grey[600]
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)
                     ),
                     textAlign: TextAlign.center,
                   ),
