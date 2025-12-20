@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
 import 'package:investorapp_eminates/features/onboarding/providers/walkthrough_provider.dart';
+import 'package:investorapp_eminates/features/onboarding/widgets/fintech_pattern_painter.dart';
 
 class IntroWalkthroughScreen extends ConsumerStatefulWidget {
   const IntroWalkthroughScreen({super.key});
@@ -109,25 +110,28 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Gradient Animation
+          // Background Pattern
           Positioned.fill(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 500),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    color.withOpacity(0.1),
-                    Colors.white,
-                    color.withOpacity(0.05),
-                  ],
-                ),
-              ),
-            ),
+             child: CustomPaint(
+               painter: FintechPatternPainter(
+                 color: theme.primaryColor,
+                 opacity: 0.08,
+               ),
+               child: Container(color: Colors.white.withOpacity(0.95)), // Overlay to fade it
+             ),
           ),
 
-          // Top Actions (Skip & Logout)
+          // PageView (Moved BEHIND buttons so buttons are clickable)
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            itemCount: displaySlides.length,
+            itemBuilder: (context, index) {
+              return _buildSlide(displaySlides[index]);
+            },
+          ),
+
+          // Top Actions (Skip & Logout) - Now on TOP
           Positioned(
             top: 0,
             left: 0,
@@ -168,16 +172,6 @@ class _IntroWalkthroughScreenState extends ConsumerState<IntroWalkthroughScreen>
                 ),
               ),
             ),
-          ),
-
-          // PageView
-          PageView.builder(
-            controller: _pageController,
-            onPageChanged: _onPageChanged,
-            itemCount: displaySlides.length,
-            itemBuilder: (context, index) {
-              return _buildSlide(displaySlides[index]);
-            },
           ),
 
           // Bottom Controls

@@ -37,7 +37,7 @@ import 'package:investorapp_eminates/features/auth/screens/update_password_scree
 import 'package:investorapp_eminates/features/auth/screens/phone_entry_screen.dart';
 import 'package:investorapp_eminates/core/services/phone_verification_service.dart';
 import 'package:investorapp_eminates/features/dashboard/screens/user_profile_screen.dart';
-import 'package:investorapp_eminates/features/dashboard/screens/request_details_screen.dart';
+import 'package:investorapp_eminates/features/request_details/request_details_screen.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final supabase = Supabase.instance.client;
@@ -207,7 +207,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/request/:id',
-        builder: (context, state) => RequestDetailsScreen(requestId: state.pathParameters['id']!),
+        builder: (context, state) {
+           final id = state.pathParameters['id']!;
+           final request = state.extra as InvestorRequest?;
+           return RequestDetailsScreen(requestId: id, request: request);
+        },
       ),
 
     ],

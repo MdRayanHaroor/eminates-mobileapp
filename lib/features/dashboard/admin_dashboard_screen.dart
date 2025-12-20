@@ -158,7 +158,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
                       child: InkWell(
-                        onTap: () => context.push('/request/${request.id}'),
+                        onTap: () => context.push('/request/${request.id}', extra: request),
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),

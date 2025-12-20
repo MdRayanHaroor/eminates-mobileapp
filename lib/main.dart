@@ -56,9 +56,8 @@ class _MyAppState extends ConsumerState<MyApp> {
     // Listen to internet status
     ref.listen(internetStatusProvider, (prev, next) {
       if (next.value == InternetConnectionStatus.disconnected) {
-        // Navigate to splash first, then sign out
+        // Navigate to splash first, but DO NOT sign out
         ref.read(goRouterProvider).go('/splash', extra: 'Internet connection lost. Please check your settings.');
-        ref.read(authRepositoryProvider).signOut();
       }
     });
     

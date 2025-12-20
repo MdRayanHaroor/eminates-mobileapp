@@ -15,13 +15,28 @@ import 'dart:io';
 
 class RequestDetailsScreen extends ConsumerWidget {
   final String requestId;
+  final InvestorRequest? request;
 
-  const RequestDetailsScreen({super.key, required this.requestId});
+  const RequestDetailsScreen({super.key, required this.requestId, this.request});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final requestAsync = ref.watch(investorRequestDetailsProvider(requestId));
     final isAdminAsync = ref.watch(isAdminProvider);
+
+    // If request object is passed (e.g. from Admin Dashboard), use it directly
+    if (request != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Request Details')),
+        body: isAdminAsync.when(
+          data: (isAdmin) => _buildContent(context, ref, request!, isAdmin),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) => Center(child: Text('Error: $e')),
+        ),
+      );
+    }
+
+    // Otherwise fetch it
+    final requestAsync = ref.watch(investorRequestDetailsProvider(requestId));
 
     return Scaffold(
       appBar: AppBar(
@@ -36,7 +51,7 @@ class RequestDetailsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
+        error: (e, s) => Center(child: Text('Error: $e\nID: ${requestId}', textAlign: TextAlign.center)),
       ),
     );
   }
