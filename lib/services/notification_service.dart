@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Top-level function for background handling
 @pragma('vm:entry-point')
@@ -127,4 +128,27 @@ class NotificationService {
       platformChannelSpecifics,
     );
   }
+  Future<void> showSubmissionNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'submissions_channel', 
+      'Submission Updates',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await _localNotifications.show(
+      DateTime.now().millisecond,
+      'Investment Request Submitted',
+      'Your request has been successfully submitted. Please wait for Admin confirmation.',
+      platformChannelSpecifics,
+    );
+  }
 }
+
+// Simple Provider for the service
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService();
+});

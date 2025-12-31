@@ -38,8 +38,13 @@ final userRoleProvider = FutureProvider<String?>((ref) async {
 });
 
 final userProfileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
-  final supabase = Supabase.instance.client;
-  final user = supabase.auth.currentUser; // Use direct auth or provider
+  final authState = ref.watch(authStateProvider); // Force rebuild on auth change
+  final user = ref.watch(currentUserProvider);
   if (user == null) return null;
-  return await supabase.from('users').select('*').eq('id', user.id).single();
+  final supabase = Supabase.instance.client;
+  try {
+     return await supabase.from('users').select('*').eq('id', user.id).single();
+  } catch (e) {
+     return null;
+  }
 });

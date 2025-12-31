@@ -13,22 +13,39 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
-class RequestDetailsScreen extends ConsumerWidget {
+class RequestDetailsScreen extends ConsumerStatefulWidget {
   final String requestId;
   final InvestorRequest? request;
 
   const RequestDetailsScreen({super.key, required this.requestId, this.request});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RequestDetailsScreen> createState() => _RequestDetailsScreenState();
+}
+
+class _RequestDetailsScreenState extends ConsumerState<RequestDetailsScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+    // Force fresh fetch if we are loading from ID
+    if (widget.request == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+         ref.invalidate(investorRequestDetailsProvider(widget.requestId));
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isAdminAsync = ref.watch(isAdminProvider);
 
     // If request object is passed (e.g. from Admin Dashboard), use it directly
-    if (request != null) {
+    if (widget.request != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Request Details')),
         body: isAdminAsync.when(
-          data: (isAdmin) => _buildContent(context, ref, request!, isAdmin),
+          data: (isAdmin) => _buildContent(context, ref, widget.request!, isAdmin),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, s) => Center(child: Text('Error: $e')),
         ),
@@ -36,7 +53,7 @@ class RequestDetailsScreen extends ConsumerWidget {
     }
 
     // Otherwise fetch it
-    final requestAsync = ref.watch(investorRequestDetailsProvider(requestId));
+    final requestAsync = ref.watch(investorRequestDetailsProvider(widget.requestId));
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +68,7 @@ class RequestDetailsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e\nID: ${requestId}', textAlign: TextAlign.center)),
+        error: (e, s) => Center(child: Text('Error: $e\nID: ${widget.requestId}', textAlign: TextAlign.center)),
       ),
     );
   }
@@ -66,6 +83,9 @@ class RequestDetailsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           if (isAdmin && (request.status == 'Pending' || request.status == 'UTR Submitted' || request.status == 'Investment Confirmed' || (request.status == 'Approved' && request.transactionUtr != null)))
              _buildAdminActions(context, ref, request),
+          
+          if (!isAdmin && request.status == 'Approved')
+            _buildUserPaymentAction(context, ref, request),
           const SizedBox(height: 24),
           
           // Payment Information Section (New)
@@ -187,10 +207,8 @@ class RequestDetailsScreen extends ConsumerWidget {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () {
-                        // Load request into onboarding provider
-                        ref.read(onboardingFormProvider.notifier).setRequest(request);
-                        // Navigate to onboarding
-                        context.push('/onboarding');
+                        // Navigate to onboarding with request data
+                        context.push('/onboarding', extra: request);
                       },
                       icon: const Icon(Icons.edit),
                       label: const Text('Edit'),
@@ -395,11 +413,14 @@ class RequestDetailsScreen extends ConsumerWidget {
   Future<void> _updateStatus(BuildContext context, WidgetRef ref, String id, String status, {String? reason, Map<String, dynamic>? adminBankDetails}) async {
     try {
       await ref.read(investorRepositoryProvider).updateRequestStatus(id, status, reason: reason, adminBankDetails: adminBankDetails);
+      // Force refresh of the specific request details
       ref.invalidate(investorRequestDetailsProvider(id));
       ref.invalidate(allRequestsProvider); // Refresh admin list
+      ref.invalidate(userRequestsProvider); // Refresh user list if viewed by admin
+      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Request $status')),
+          SnackBar(content: Text('Request $status successfully')),
         );
       }
     } catch (e) {
@@ -407,6 +428,223 @@ class RequestDetailsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
+      }
+    }
+  }
+
+  Widget _buildUserPaymentAction(BuildContext context, WidgetRef ref, InvestorRequest request) {
+    final bankDetails = request.adminBankDetails;
+    if (bankDetails == null) return const SizedBox.shrink();
+
+    return Card(
+      elevation: 4,
+      color: Colors.orange.shade50,
+      margin: const EdgeInsets.only(bottom: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.orange.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.payment, color: Colors.orange.shade800),
+                const SizedBox(width: 8),
+                Text(
+                  'Payment Required',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Your investment request has been approved! Please deposit the approved amount to the bank account below and submit the transaction UTR number to confirm your investment.',
+              style: TextStyle(height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _buildBankDetailRow('Bank Name', bankDetails['bank_name']),
+                  const Divider(height: 16),
+                  _buildBankDetailRow('Account Name', bankDetails['account_name'] ?? bankDetails['account_holder_name']),
+                  const Divider(height: 16),
+                  _buildBankDetailRow('Account Number', bankDetails['account_no'] ?? bankDetails['account_number']),
+                  const Divider(height: 16),
+                  _buildBankDetailRow('IFSC Code', bankDetails['ifsc'] ?? bankDetails['ifsc_code']),
+                  const Divider(height: 16),
+                  _buildBankDetailRow('Branch', bankDetails['branch'] ?? bankDetails['branch_name_location']),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton.icon(
+                onPressed: () => _submitUtr(context, ref, request),
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Submit UTR / Transaction No'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.orange.shade800,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBankDetailRow(String label, String? value) {
+    if (value == null || value.isEmpty) return const SizedBox.shrink();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: SelectableText(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submitUtr(BuildContext context, WidgetRef ref, InvestorRequest request) async {
+    final utrController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Submit UTR / Transaction ID'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Please enter the UTR (Unique Transaction Reference) number or Transaction ID from your payment receipt.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: utrController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'UTR Number / Transaction ID',
+                  hintText: 'e.g. 345678123456',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.receipt_long),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter UTR number';
+                  }
+                  if (value.trim().length < 6) {
+                    return 'UTR number seems too short';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(ctx, utrController.text.trim());
+              }
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      if (!context.mounted) return;
+      
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        await ref.read(investorRepositoryProvider).submitUtr(request.id!, result);
+        
+        // Close loading
+        if (context.mounted) Navigator.pop(context);
+
+        // Refresh provider
+        ref.invalidate(investorRequestDetailsProvider(request.id!));
+        ref.invalidate(userRequestsProvider); // Refresh dashboard list if applicable
+        
+        if (context.mounted) {
+          // Success dialog or snackbar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('UTR Submitted successfully. Waiting for Admin confirmation.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        // Close loading
+        if (context.mounted) Navigator.pop(context);
+        
+        if (context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('Error submitting UTR: $e'),
+               backgroundColor: Colors.red,
+             ),
+           );
+        }
       }
     }
   }

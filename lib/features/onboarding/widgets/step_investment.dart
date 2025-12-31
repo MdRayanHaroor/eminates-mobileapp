@@ -21,6 +21,11 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   @override
   void initState() {
     super.initState();
+    // Force refresh checks
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(plansProvider);
+    });
+    
     final state = ref.read(onboardingFormProvider);
     
     // Initialize amount (handle commas/symbols)
@@ -63,52 +68,36 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   }
 
   void _onAmountChanged() {
-    // Only update provider when valid
+    // Update provider always to keep in sync, even if empty
     final amountText = _customAmountController.text.replaceAll(',', '');
-    if (amountText.isNotEmpty) {
-        // We defer full update to _onPlanSelected or just update amount here
-        // If a plan is already selected, we should re-trigger update to ensure calcs are fresh
-        if (_selectedPlanId != null) {
-           // We need to access the plan object to pass correct details.
-           // Since we don't have it easily here without context, let's just update amount string.
-           // Ideally, we'd update everything together.
-        }
-        
-        // Minimal update to store amount in provider
-       ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-          investmentAmount: amountText, 
-       );
-    }
+    // We update blindly to ensure state matches UI
+    ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+      investmentAmount: amountText, 
+    );
   }
 
   void _onPlanInput(InvestmentPlan plan) {
-      setState(() {
-        _selectedPlanId = plan.id;
-      });
-      
-      final amountText = _customAmountController.text.replaceAll(',', '');
-      
-      // Convert tenure string "3 Years" to months int
-      int months = 12; // default
-      final tenureStr = plan.tenure; // e.g. "3 Years" or "36 Months"
-      if (tenureStr.toLowerCase().contains('year')) {
-          final parts = tenureStr.split(' ');
-          if (parts.isNotEmpty) {
-             final years = int.tryParse(parts[0]) ?? 1;
-             months = years * 12;
-          }
-      } else if (tenureStr.toLowerCase().contains('month')) {
-          final parts = tenureStr.split(' ');
-          if (parts.isNotEmpty) {
-             months = int.tryParse(parts[0]) ?? 12;
-          }
-      }
+      try {
+        setState(() {
+          _selectedPlanId = plan.id;
+        });
+        
+        final amountText = _customAmountController.text.replaceAll(',', '');
+        
+        // Use robust calculation from numeric fields
+        final int months = (plan.tenureYears * 12).round();
 
-      ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
-          investmentAmount: amountText, 
-          planName: plan.name,
-          selectedTenure: months, // Ensure this is int
-      );
+        ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+            investmentAmount: amountText, 
+            planName: plan.name,
+            selectedTenure: months, 
+        );
+      } catch (e) {
+        debugPrint('Error selecting plan: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error selecting plan: $e')),
+        );
+      }
   }
 
   @override
@@ -274,7 +263,7 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
                                     style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87),
                                  ),
                                  Text(
-                                   'Tenure: ${plan.tenure}', 
+                                   'Tenure: ${plan.tenureYears % 1 == 0 ? plan.tenureYears.toInt() : plan.tenureYears} Years', 
                                    style: GoogleFonts.outfit(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w600, fontSize: 14)
                                  ),
                                ],

@@ -66,7 +66,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                    ),
                    const SizedBox(height: 0),
                    SizedBox(
-                     height: 600, 
+                     height: 520, // Reduced from 600 
                      child: PageView.builder(
                        controller: _pageController,
                        itemCount: _plans.length,
@@ -164,7 +164,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
             // Header with Gradient
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20), // Reduce padding
+              padding: const EdgeInsets.all(16), // Reduced from 20
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: gradientColors,
@@ -178,17 +178,17 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                   Text(
                     plan.name,
                     style: GoogleFonts.outfit(
-                      fontSize: 22, // Reduce font
+                      fontSize: 18, // Reduced from 22
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2), // Reduced from 4
                   Text(
                      // Show Tenure Based Text instead of fixed amount
                     '${plan.tenure} Plan', 
                     style: GoogleFonts.outfit(
-                      fontSize: 24, // Reduce font
+                      fontSize: 20, // Reduced from 24
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
@@ -211,7 +211,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
             
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16.0), // Reduce padding
+                padding: const EdgeInsets.all(12.0), // Reduced from 16.0
                 child: Column(
                   children: [
                      _buildFeatureRow('Min. Investment', '₹${NumberFormat.compact(locale: 'en_IN').format(plan.minAmount ?? 0)}'),
@@ -242,7 +242,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                          style: ElevatedButton.styleFrom(
                            backgroundColor: Colors.black, // Sleek black button
                            foregroundColor: Colors.white,
-                           padding: const EdgeInsets.symmetric(vertical: 14),
+                           padding: const EdgeInsets.symmetric(vertical: 12), // Reduced from 14
                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                          ),
                          child: const Text('View Details'),

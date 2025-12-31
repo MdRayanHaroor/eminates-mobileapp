@@ -77,7 +77,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        builder: (context, state) {
+          final request = state.extra as InvestorRequest?;
+          return OnboardingScreen(existingRequest: request);
+        },
       ),
       GoRoute(
         path: '/walkthrough',

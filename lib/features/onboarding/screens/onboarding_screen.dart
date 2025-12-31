@@ -9,9 +9,11 @@ import 'package:investorapp_eminates/features/onboarding/widgets/step_kyc.dart';
 import 'package:investorapp_eminates/features/onboarding/widgets/step_personal_contact.dart';
 import 'package:investorapp_eminates/features/request_details/request_details_screen.dart';
 import 'package:investorapp_eminates/core/utils/error_utils.dart';
+import 'package:investorapp_eminates/models/investor_request.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({super.key});
+  final InvestorRequest? existingRequest;
+  const OnboardingScreen({super.key, this.existingRequest});
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -19,6 +21,30 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _isSubmitting = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.existingRequest != null) {
+        // Populate form with existing data
+        ref.read(onboardingFormProvider.notifier).setRequest(widget.existingRequest!);
+        // Reset step to 0 or potentially calculate last active step
+        ref.read(onboardingStepProvider.notifier).state = 0; 
+      } else {
+        // Fresh start logic for new request
+        ref.invalidate(onboardingFormProvider);
+        ref.read(onboardingStepProvider.notifier).state = 0;
+      }
+    });
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    }
+  }
 
   bool _validateCurrentStep(BuildContext context, WidgetRef ref, int step) {
     // ... validation logic remains same
@@ -28,6 +54,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case 0: // Investment (moved to first)
         // Check Investment first
         if ((state.investmentAmount ?? '').isEmpty) return _showError(context, 'Investment Amount is required');
+        if ((state.planName ?? '').isEmpty) return _showError(context, 'Please select an Investment Plan');
         return true;
 
       case 1: // Personal & Contact
@@ -49,6 +76,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         if ((state.addressDistrict ?? '').isEmpty) return _showError(context, 'District is required');
         if ((state.addressState ?? '').isEmpty) return _showError(context, 'State is required');
         if ((state.addressPincode ?? '').isEmpty) return _showError(context, 'Pincode is required');
+        if (!RegExp(r'^[0-9]{6}$').hasMatch(state.addressPincode ?? '')) return _showError(context, 'Invalid Pincode (6 digits)');
         
         if ((state.primaryMobile ?? '').isEmpty) return _showError(context, 'Primary Mobile is required');
         if (!RegExp(r'^[0-9]{10}$').hasMatch(state.primaryMobile ?? '')) return _showError(context, 'Invalid Primary Mobile (10 digits)');
@@ -101,6 +129,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return false;
   }
 
+  Future<bool> _onWillPop() async {
+    final shouldPop = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Exit Form?'),
+        content: const Text('Your progress will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    );
+    return shouldPop ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentStep = ref.watch(onboardingStepProvider);
@@ -114,37 +164,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const StepDeclaration(),
     ];
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+         if (didPop) return;
+         final shouldPop = await _onWillPop();
+         if (shouldPop && context.mounted) {
+            Navigator.pop(context);
+         }
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('New Investment Request'),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () {
+          onPressed: () async {
             // Confirm exit
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Exit Form?'),
-                content: const Text('Your progress will be lost.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/dashboard');
-                      }
-                    },
-                    child: const Text('Exit'),
-                  ),
-                ],
-              ),
-            );
+            final shouldExit = await _onWillPop();
+            if (shouldExit && context.mounted) {
+               if (context.canPop()) {
+                 context.pop();
+               } else {
+                 context.go('/dashboard');
+               }
+            }
           },
         ),
         actions: [
@@ -243,6 +286,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           Expanded(
             child: SingleChildScrollView(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               child: steps[currentStep],
             ),
@@ -257,6 +301,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   OutlinedButton(
                     onPressed: _isSubmitting ? null : () {
                       ref.read(onboardingStepProvider.notifier).state--;
+                      _scrollToTop();
                     },
                     child: const Text('Back'),
                   )
@@ -265,8 +310,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 FilledButton(
                   onPressed: _isSubmitting ? null : () async {
                     if (currentStep < steps.length - 1) {
-                      // Allow proceeding without validation
+                      // Proceed without validation for better UX
+                      // Validation happens on final Submit or we can add visual indicators later
                       ref.read(onboardingStepProvider.notifier).state++;
+                      _scrollToTop();
                     } else {
                       // Validate ALL steps before submission
                       bool isValid = true;
@@ -330,6 +377,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 }

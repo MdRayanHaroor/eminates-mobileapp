@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:investorapp_eminates/features/auth/providers/auth_provider.dart';
 import 'package:investorapp_eminates/features/dashboard/providers/dashboard_provider.dart';
 import 'package:investorapp_eminates/models/investor_request.dart';
+import 'package:investorapp_eminates/services/notification_service.dart';
+import 'package:investorapp_eminates/repositories/investor_repository.dart';
 
 final onboardingStepProvider = StateProvider<int>((ref) => 0);
 
@@ -80,6 +82,10 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
       declarationPlace: state.declarationPlace,
       declarationDate: state.declarationDate,
       isConfirmed: state.isConfirmed,
+      // Preserve Investment
+      planName: state.planName,
+      selectedTenure: state.selectedTenure,
+      maturityBonusPercentage: state.maturityBonusPercentage,
     );
   }
 
@@ -144,6 +150,10 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
       declarationPlace: state.declarationPlace,
       declarationDate: state.declarationDate,
       isConfirmed: state.isConfirmed,
+      // Preserve Investment
+      planName: state.planName,
+      selectedTenure: state.selectedTenure,
+      maturityBonusPercentage: state.maturityBonusPercentage,
     );
   }
   
@@ -205,6 +215,10 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
       declarationPlace: state.declarationPlace,
       declarationDate: state.declarationDate,
       isConfirmed: state.isConfirmed,
+      // Preserve Investment
+      planName: state.planName,
+      selectedTenure: state.selectedTenure,
+      maturityBonusPercentage: state.maturityBonusPercentage,
     );
   }
 
@@ -269,6 +283,10 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
       declarationPlace: state.declarationPlace,
       declarationDate: state.declarationDate,
       isConfirmed: state.isConfirmed,
+      // Preserve Investment
+      planName: state.planName,
+      selectedTenure: state.selectedTenure,
+      maturityBonusPercentage: state.maturityBonusPercentage,
     );
   }
 
@@ -336,6 +354,10 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
       declarationPlace: state.declarationPlace,
       declarationDate: state.declarationDate,
       isConfirmed: state.isConfirmed,
+      // Preserve Investment
+      planName: state.planName,
+      selectedTenure: state.selectedTenure,
+      maturityBonusPercentage: state.maturityBonusPercentage,
     );
   }
 
@@ -454,6 +476,10 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
       declarationPlace: declarationPlace ?? state.declarationPlace,
       declarationDate: declarationDate ?? state.declarationDate,
       isConfirmed: isConfirmed ?? state.isConfirmed,
+      // Preserve Investment
+      planName: state.planName,
+      selectedTenure: state.selectedTenure,
+      maturityBonusPercentage: state.maturityBonusPercentage,
     );
   }
 
@@ -568,6 +594,14 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
     }
     // Refresh the dashboard list
     ref.refresh(userRequestsProvider);
+    
+    // Send Notification
+    try {
+      // Need to import NotificationService
+      await ref.read(notificationServiceProvider).showSubmissionNotification();
+    } catch (e) {
+      debugPrint('Failed to send notification: $e');
+    }
   }
 
   Future<void> saveAsDraft(WidgetRef ref) async {

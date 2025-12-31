@@ -36,9 +36,7 @@ class RequestCard extends ConsumerWidget {
         child: InkWell(
           onTap: () {
             if (request.status == 'Draft') {
-              ref.read(onboardingFormProvider.notifier).setRequest(request);
-              ref.read(onboardingStepProvider.notifier).state = 0;
-              context.push('/onboarding');
+              context.push('/onboarding', extra: request);
             } else {
                context.push('/request/${request.id}');
             }
@@ -197,6 +195,34 @@ class RequestCard extends ConsumerWidget {
                                  ),
                                  maxLines: 2,
                                  overflow: TextOverflow.ellipsis,
+                               ),
+                             ],
+                           ),
+                         ),
+                     ],
+                     if (request.status.toLowerCase() == 'approved') ...[
+                        const SizedBox(height: 12),
+                         Container(
+                           width: double.infinity,
+                           padding: const EdgeInsets.all(12),
+                           decoration: BoxDecoration(
+                             color: Colors.orange.shade50,
+                             borderRadius: BorderRadius.circular(8),
+                             border: Border.all(color: Colors.orange.shade100),
+                           ),
+                           child: Row(
+                             children: [
+                               Icon(Icons.info_outline, size: 16, color: Colors.orange.shade800),
+                               const SizedBox(width: 8),
+                               Expanded(
+                                 child: Text(
+                                   'Action Required: Submit UTR',
+                                   style: GoogleFonts.outfit(
+                                     color: Colors.orange.shade900,
+                                     fontWeight: FontWeight.bold,
+                                     fontSize: 12,
+                                   ),
+                                 ),
                                ),
                              ],
                            ),
