@@ -26,7 +26,8 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
       ref.invalidate(plansProvider);
     });
     
-    final state = ref.read(onboardingFormProvider);
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    final state = ref.read(onboardingFormProvider(currentRequest));
     
     // Initialize amount (handle commas/symbols)
     final currentAmount = state.investmentAmount;
@@ -71,7 +72,8 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
     // Update provider always to keep in sync, even if empty
     final amountText = _customAmountController.text.replaceAll(',', '');
     // We update blindly to ensure state matches UI
-    ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    ref.read(onboardingFormProvider(currentRequest).notifier).updateInvestmentDetails(
       investmentAmount: amountText, 
     );
   }
@@ -87,7 +89,8 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
         // Use robust calculation from numeric fields
         final int months = (plan.tenureYears * 12).round();
 
-        ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+        final currentRequest = ref.read(currentEditingRequestProvider);
+        ref.read(onboardingFormProvider(currentRequest).notifier).updateInvestmentDetails(
             investmentAmount: amountText, 
             planName: plan.name,
             selectedTenure: months, 
@@ -103,7 +106,8 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   @override
   Widget build(BuildContext context) {
     // Determine selected plan from provider if local state is null (initial load)
-    final state = ref.watch(onboardingFormProvider);
+    final currentRequest = ref.watch(currentEditingRequestProvider);
+    final state = ref.watch(onboardingFormProvider(currentRequest));
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,14 +137,18 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
               TextFormField(
                 controller: _customAmountController,
                 focusNode: _amountFocusNode,
-                style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                style: GoogleFonts.outfit(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Enter Amount',
                   hintText: 'Min ₹1,00,000',
                   prefixText: '₹ ',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey.shade50,
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (val) {
@@ -167,8 +175,8 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('₹1L', style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text('₹10L+', style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('₹1L', style: GoogleFonts.outfit(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('₹10L+', style: GoogleFonts.outfit(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
               SliderTheme(
@@ -243,7 +251,7 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
                       borderRadius: BorderRadius.circular(16),
                       color: isSelected 
                           ? Theme.of(context).primaryColor.withOpacity(0.04) 
-                          : Colors.white,
+                          : Theme.of(context).cardColor,
                       boxShadow: isSelected 
                           ? [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))] 
                           : [],
@@ -260,7 +268,7 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
                                children: [
                                  Text(
                                     plan.name,
-                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87),
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).textTheme.bodyLarge?.color),
                                  ),
                                  Text(
                                    'Tenure: ${plan.tenureYears % 1 == 0 ? plan.tenureYears.toInt() : plan.tenureYears} Years', 
@@ -336,12 +344,13 @@ class _StepInvestmentState extends ConsumerState<StepInvestment> {
   }
 
   Widget _buildReturnItem(String label, String value) {
+     final isDark = Theme.of(context).brightness == Brightness.dark;
      return Column(
        crossAxisAlignment: CrossAxisAlignment.start,
        children: [
-         Text(label, style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 12)),
+         Text(label, style: GoogleFonts.outfit(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 12)),
          const SizedBox(height: 2),
-         Text(value, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
+         Text(value, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color)),
        ],
      );
   }

@@ -15,10 +15,32 @@ class _StepDeclarationState extends ConsumerState<StepDeclaration> {
   final _dateController = TextEditingController();
   bool _isConfirmed = false;
 
+  // Helper for consistent dark mode friendly decoration
+  InputDecoration _getInputDecoration(String label, {Widget? suffixIcon}) {
+    return InputDecoration(
+      labelText: label,
+      suffixIcon: suffixIcon,
+      labelStyle: const TextStyle(color: Colors.grey),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.blue),
+         borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      filled: true,
+      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[50],
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    final state = ref.read(onboardingFormProvider);
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    final state = ref.read(onboardingFormProvider(currentRequest));
     _placeController.text = state.declarationPlace ?? '';
     _dateController.text = state.declarationDate != null 
         ? DateFormat('yyyy-MM-dd').format(state.declarationDate!) 
@@ -28,12 +50,14 @@ class _StepDeclarationState extends ConsumerState<StepDeclaration> {
     // Set default date if empty
     if (state.declarationDate == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(onboardingFormProvider.notifier).updateDeclaration(declarationDate: DateTime.now());
+        final currentRequest = ref.read(currentEditingRequestProvider);
+        ref.read(onboardingFormProvider(currentRequest).notifier).updateDeclaration(declarationDate: DateTime.now());
       });
     }
 
     _placeController.addListener(() {
-      ref.read(onboardingFormProvider.notifier).updateDeclaration(declarationPlace: _placeController.text);
+      final currentRequest = ref.read(currentEditingRequestProvider);
+      ref.read(onboardingFormProvider(currentRequest).notifier).updateDeclaration(declarationPlace: _placeController.text);
     });
   }
 
@@ -54,11 +78,11 @@ class _StepDeclarationState extends ConsumerState<StepDeclaration> {
           ),
         ),
         const SizedBox(height: 24),
-        TextFormField(controller: _placeController, decoration: const InputDecoration(labelText: 'Place')),
+        TextFormField(controller: _placeController, decoration: _getInputDecoration('Place')),
         const SizedBox(height: 8),
         TextFormField(
           controller: _dateController,
-          decoration: const InputDecoration(labelText: 'Date', suffixIcon: Icon(Icons.calendar_today)),
+          decoration: _getInputDecoration('Date', suffixIcon: const Icon(Icons.calendar_today)),
           readOnly: true,
         ),
         const SizedBox(height: 24),
@@ -67,7 +91,8 @@ class _StepDeclarationState extends ConsumerState<StepDeclaration> {
           value: _isConfirmed,
           onChanged: (val) {
             setState(() => _isConfirmed = val ?? false);
-            ref.read(onboardingFormProvider.notifier).updateDeclaration(isConfirmed: val);
+            final currentRequest = ref.read(currentEditingRequestProvider);
+            ref.read(onboardingFormProvider(currentRequest).notifier).updateDeclaration(isConfirmed: val);
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),

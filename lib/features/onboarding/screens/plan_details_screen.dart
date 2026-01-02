@@ -62,7 +62,8 @@ class _PlanDetailsScreenState extends ConsumerState<PlanDetailsScreen> {
   void _selectPlan() {
     if (_formKey.currentState?.validate() ?? false) {
       // Update the provider with the selected plan and amount
-      ref.read(onboardingFormProvider.notifier).updateInvestmentDetails(
+      final currentRequest = ref.read(currentEditingRequestProvider);
+      ref.read(onboardingFormProvider(currentRequest).notifier).updateInvestmentDetails(
         planName: widget.plan.name,
         investmentAmount: _amountController.text,
       );

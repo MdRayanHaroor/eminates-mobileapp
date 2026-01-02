@@ -39,10 +39,23 @@ class _ReferralEntryScreenState extends ConsumerState<ReferralEntryScreen> {
         context.pop();
       }
 
+    } on PostgrestException catch (e) {
+      if (mounted) {
+        String message = e.message;
+        if (message.toLowerCase().contains('expired')) {
+          message = 'This referral code has expired.';
+        } else if (message.toLowerCase().contains('invalid') || message.toLowerCase().contains('not found')) {
+          message = 'Invalid referral code. Please check and try again.';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+          SnackBar(content: Text('An unexpected error occurred. Please try again.'), backgroundColor: Colors.red),
         );
       }
     } finally {

@@ -25,10 +25,32 @@ class _StepKycState extends ConsumerState<StepKyc> {
 
   final ImagePicker _picker = ImagePicker();
 
+  // Helper for consistent dark mode friendly decoration
+  InputDecoration _getInputDecoration(String label, {String? hintText}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hintText,
+      labelStyle: const TextStyle(color: Colors.grey),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.blue),
+         borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      filled: true,
+      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[50],
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    final state = ref.read(onboardingFormProvider);
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    final state = ref.read(onboardingFormProvider(currentRequest));
     _panController.text = state.panNumber ?? '';
     _aadhaarController.text = state.aadhaarNumber ?? '';
     _voterController.text = state.voterId ?? '';
@@ -41,7 +63,8 @@ class _StepKycState extends ConsumerState<StepKyc> {
   }
 
   void _updateState() {
-    ref.read(onboardingFormProvider.notifier).updateKycDetails(
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    ref.read(onboardingFormProvider(currentRequest).notifier).updateKycDetails(
       panNumber: _panController.text,
       aadhaarNumber: _aadhaarController.text,
       voterId: _voterController.text,
@@ -74,18 +97,21 @@ class _StepKycState extends ConsumerState<StepKyc> {
         if (docType == 'selfie') _isUploadingSelfie = true;
       });
 
-      final userId = ref.read(onboardingFormProvider).userId;
-      
-      // Upload to Supabase
+      final currentRequest = ref.read(currentEditingRequestProvider);
+      final userId = ref.read(onboardingFormProvider(currentRequest)).userId;
       final path = await ref.read(storageServiceProvider).uploadFile(file, userId, docType);
-
-      // Update Provider
-      if (docType == 'pan') {
-        ref.read(onboardingFormProvider.notifier).updateKycDetails(panCardUrl: path);
-      } else if (docType == 'aadhaar') {
-        ref.read(onboardingFormProvider.notifier).updateKycDetails(aadhaarCardUrl: path);
-      } else if (docType == 'selfie') {
-        ref.read(onboardingFormProvider.notifier).updateKycDetails(selfieUrl: path);
+      
+      // Update KYC field based on type  
+      switch (docType) {
+        case 'pan':
+          ref.read(onboardingFormProvider(currentRequest).notifier).updateKycDetails(panCardUrl: path);
+          break;
+        case 'aadhaar':
+          ref.read(onboardingFormProvider(currentRequest).notifier).updateKycDetails(aadhaarCardUrl: path);
+          break;
+        case 'selfie':
+          ref.read(onboardingFormProvider(currentRequest).notifier).updateKycDetails(selfieUrl: path);
+          break;
       }
 
       if (mounted) {
@@ -170,7 +196,8 @@ class _StepKycState extends ConsumerState<StepKyc> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(onboardingFormProvider);
+    final currentRequest = ref.watch(currentEditingRequestProvider);
+    final state = ref.watch(onboardingFormProvider(currentRequest));
 
     return SingleChildScrollView(
       child: Column(
@@ -180,10 +207,7 @@ class _StepKycState extends ConsumerState<StepKyc> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _panController,
-            decoration: const InputDecoration(
-              labelText: 'PAN Number *',
-              hintText: 'ABCDE1234F',
-            ),
+            decoration: _getInputDecoration('PAN Number *', hintText: 'ABCDE1234F'),
             textCapitalization: TextCapitalization.characters,
             validator: (value) {
               if (value == null || value.isEmpty) return 'PAN is required';
@@ -213,7 +237,7 @@ class _StepKycState extends ConsumerState<StepKyc> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _aadhaarController,
-            decoration: const InputDecoration(labelText: 'Aadhaar Number *'),
+            decoration: _getInputDecoration('Aadhaar Number *'),
             keyboardType: TextInputType.number,
             validator: (value) {
               if (value == null || value.isEmpty) return 'Aadhaar is required';
@@ -263,9 +287,9 @@ class _StepKycState extends ConsumerState<StepKyc> {
             ),
           ),
           const SizedBox(height: 16),
-          TextFormField(controller: _voterController, decoration: const InputDecoration(labelText: 'Voter ID')),
+          TextFormField(controller: _voterController, decoration: _getInputDecoration('Voter ID')),
           const SizedBox(height: 8),
-          TextFormField(controller: _passportController, decoration: const InputDecoration(labelText: 'Passport Number')),
+          TextFormField(controller: _passportController, decoration: _getInputDecoration('Passport Number')),
           const SizedBox(height: 24),
         ],
       ),

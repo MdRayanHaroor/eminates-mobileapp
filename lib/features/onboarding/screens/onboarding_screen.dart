@@ -26,18 +26,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.existingRequest != null) {
-        // Populate form with existing data
-        ref.read(onboardingFormProvider.notifier).setRequest(widget.existingRequest!);
-        // Reset step to 0 or potentially calculate last active step
-        ref.read(onboardingStepProvider.notifier).state = 0; 
-      } else {
-        // Fresh start logic for new request
-        ref.invalidate(onboardingFormProvider);
-        ref.read(onboardingStepProvider.notifier).state = 0;
-      }
-    });
   }
 
   void _scrollToTop() {
@@ -48,7 +36,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   bool _validateCurrentStep(BuildContext context, WidgetRef ref, int step) {
     // ... validation logic remains same
-    final state = ref.read(onboardingFormProvider);
+    final state = ref.read(onboardingFormProvider(widget.existingRequest));
     
     switch (step) {
       case 0: // Investment (moved to first)
@@ -153,7 +141,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentStep = ref.watch(onboardingStepProvider);
+    final currentStep = ref.watch(onboardingStepProvider(widget.existingRequest?.id));
+    // Watch the form provider to keep the state alive throughout the onboarding process
+    // This prevents data loss when switching steps if the child widgets are rebuilt/disposed
+    ref.watch(onboardingFormProvider(widget.existingRequest));
 
     // List of steps reordered: Investment First
     final steps = [
@@ -164,16 +155,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const StepDeclaration(),
     ];
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-         if (didPop) return;
-         final shouldPop = await _onWillPop();
-         if (shouldPop && context.mounted) {
-            Navigator.pop(context);
-         }
-      },
-      child: Scaffold(
+    return ProviderScope(
+      overrides: [
+        currentEditingRequestProvider.overrideWith((ref) => widget.existingRequest),
+      ],
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+           if (didPop) return;
+           final shouldPop = await _onWillPop();
+           if (shouldPop && context.mounted) {
+              Navigator.pop(context);
+           }
+        },
+        child: Scaffold(
       appBar: AppBar(
         title: const Text('New Investment Request'),
         leading: IconButton(
@@ -198,9 +193,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     setState(() => _isSubmitting = true);
                     try {
                       // Capture ID before submit
-                      final currentRequestId = ref.read(onboardingFormProvider).id;
+                      final currentRequestId = ref.read(onboardingFormProvider(widget.existingRequest)).id;
                       
-                      await ref.read(onboardingFormProvider.notifier).saveAsDraft(ref);
+                      await ref.read(onboardingFormProvider(widget.existingRequest).notifier).saveAsDraft(ref);
                       
                       // Invalidate details provider if it was an update
                       if (currentRequestId != null && currentRequestId.isNotEmpty) {
@@ -300,7 +295,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 if (currentStep > 0)
                   OutlinedButton(
                     onPressed: _isSubmitting ? null : () {
-                      ref.read(onboardingStepProvider.notifier).state--;
+                      ref.read(onboardingStepProvider(widget.existingRequest?.id).notifier).state--;
                       _scrollToTop();
                     },
                     child: const Text('Back'),
@@ -312,7 +307,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     if (currentStep < steps.length - 1) {
                       // Proceed without validation for better UX
                       // Validation happens on final Submit or we can add visual indicators later
-                      ref.read(onboardingStepProvider.notifier).state++;
+                      ref.read(onboardingStepProvider(widget.existingRequest?.id).notifier).state++;
                       _scrollToTop();
                     } else {
                       // Validate ALL steps before submission
@@ -320,7 +315,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       for (int i = 0; i < steps.length; i++) {
                         if (!_validateCurrentStep(context, ref, i)) {
                           isValid = false;
-                          ref.read(onboardingStepProvider.notifier).state = i; // Go to the invalid step
+                          ref.read(onboardingStepProvider(widget.existingRequest?.id).notifier).state = i; // Go to the invalid step
                           break;
                         }
                       }
@@ -331,9 +326,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       setState(() => _isSubmitting = true);
                       try {
                         // Capture ID before submit (it might be cleared or changed, though unlikely)
-                        final currentRequestId = ref.read(onboardingFormProvider).id;
+                        final currentRequestId = ref.read(onboardingFormProvider(widget.existingRequest)).id;
                         
-                        await ref.read(onboardingFormProvider.notifier).submitForm(ref);
+                        await ref.read(onboardingFormProvider(widget.existingRequest).notifier).submitForm(ref);
                         
                         // Invalidate details provider if it was an update
                         if (currentRequestId != null && currentRequestId.isNotEmpty) {
@@ -377,6 +372,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
         ],
       ),
-    ));
+      ),
+    ),
+    );
   }
 }

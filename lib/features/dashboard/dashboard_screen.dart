@@ -95,13 +95,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
            return const AdminDashboardScreen();
         }
 
+        final themeMode = ref.watch(themeModeProvider);
+        final isDark = themeMode == ThemeMode.dark;
+
         // User Dashboard with Vibrant Theme
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: theme.scaffoldBackgroundColor,
           drawer: const DashboardSidebar(),
           appBar: AppBar(
-            backgroundColor: theme.primaryColor,
+            backgroundColor: isDark ? Colors.blue : theme.primaryColor,
             elevation: 0,
             leading: IconButton(
               icon: CircleAvatar(

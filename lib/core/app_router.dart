@@ -78,7 +78,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         builder: (context, state) {
-          final request = state.extra as InvestorRequest?;
+          InvestorRequest? request;
+          if (state.extra is InvestorRequest) {
+            request = state.extra as InvestorRequest;
+          } else if (state.extra is Map<String, dynamic>) {
+            // Handle case where extra was serialized as Map
+            request = InvestorRequest.fromJson(state.extra as Map<String, dynamic>);
+          }
           return OnboardingScreen(existingRequest: request);
         },
       ),

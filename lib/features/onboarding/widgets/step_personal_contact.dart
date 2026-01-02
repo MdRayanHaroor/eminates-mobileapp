@@ -14,6 +14,30 @@ class StepPersonalContact extends ConsumerStatefulWidget {
 class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
   final _formKey = GlobalKey<FormState>();
 
+  // Helper for consistent dark mode friendly decoration
+  InputDecoration _getInputDecoration(String label, {Widget? suffixIcon}) {
+    // Determine if dark mode is active to potentially adjust colors manually if needed, 
+    // though Theme usually handles this if configured correctly.
+    // Assuming the issue is label contrast or text color.
+    return InputDecoration(
+      labelText: label,
+      suffixIcon: suffixIcon,
+      labelStyle: const TextStyle(color: Colors.grey), // Ensure label is visible
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.blue), // Do not use primary color directly if it's dark
+         borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      filled: true,
+      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[50],
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
   // Controllers
   final _fullNameController = TextEditingController();
   final _fatherNameController = TextEditingController();
@@ -60,7 +84,8 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
   void initState() {
     super.initState();
     // Initialize controllers with current state
-    final state = ref.read(onboardingFormProvider);
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    final state = ref.read(onboardingFormProvider(currentRequest));
     final user = ref.read(currentUserProvider);
 
     // Auto-fill Full Name if not already set
@@ -69,7 +94,8 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
       _fullNameController.text = userFullName;
       if (userFullName.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(onboardingFormProvider.notifier).updatePersonalDetails(fullName: userFullName);
+          final currentRequest = ref.read(currentEditingRequestProvider);
+          ref.read(onboardingFormProvider(currentRequest).notifier).updatePersonalDetails(fullName: userFullName);
         });
       }
     } else {
@@ -104,7 +130,8 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
       _emailController.text = user?.email ?? '';
       // Update state immediately
       WidgetsBinding.instance.addPostFrameCallback((_) {
-         ref.read(onboardingFormProvider.notifier).updateContactDetails(emailAddress: _emailController.text);
+         final currentRequest = ref.read(currentEditingRequestProvider);
+         ref.read(onboardingFormProvider(currentRequest).notifier).updateContactDetails(emailAddress: _emailController.text);
       });
     } else {
       _emailController.text = state.emailAddress ?? '';
@@ -137,7 +164,8 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
   }
 
   void _updateState() {
-    ref.read(onboardingFormProvider.notifier).updatePersonalDetails(
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    ref.read(onboardingFormProvider(currentRequest).notifier).updatePersonalDetails(
       fullName: _fullNameController.text,
       fatherName: _fatherNameController.text,
       motherName: _motherNameController.text,
@@ -152,7 +180,8 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
   }
   
   void _updateAddressState() {
-    ref.read(onboardingFormProvider.notifier).updateAddressDetails(
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    ref.read(onboardingFormProvider(currentRequest).notifier).updateAddressDetails(
       addressDoorNo: _doorNoController.text,
       addressStreet: _streetController.text,
       addressCity: _cityController.text,
@@ -170,7 +199,8 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
       }
     }
     
-    ref.read(onboardingFormProvider.notifier).updateContactDetails(
+    final currentRequest = ref.read(currentEditingRequestProvider);
+    ref.read(onboardingFormProvider(currentRequest).notifier).updateContactDetails(
       primaryMobile: _primaryMobileController.text,
       alternateMobile: _alternateMobileController.text,
       whatsappNumber: _whatsappController.text,
@@ -187,15 +217,15 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
         children: [
           Text('Section B: Personal Information', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
-          TextFormField(controller: _fullNameController, decoration: const InputDecoration(labelText: 'Full Name (as per PAN) *')),
+          TextFormField(controller: _fullNameController, decoration: _getInputDecoration('Full Name (as per PAN) *')),
           const SizedBox(height: 8),
-          TextFormField(controller: _fatherNameController, decoration: const InputDecoration(labelText: 'Father\'s Name *')),
+          TextFormField(controller: _fatherNameController, decoration: _getInputDecoration('Father\'s Name *')),
           const SizedBox(height: 8),
-          TextFormField(controller: _motherNameController, decoration: const InputDecoration(labelText: 'Mother\'s Name *')),
+          TextFormField(controller: _motherNameController, decoration: _getInputDecoration('Mother\'s Name *')),
           const SizedBox(height: 8),
           TextFormField(
             controller: _dobController,
-            decoration: const InputDecoration(labelText: 'Date of Birth (YYYY-MM-DD) *', suffixIcon: Icon(Icons.calendar_today)),
+            decoration: _getInputDecoration('Date of Birth (YYYY-MM-DD) *', suffixIcon: const Icon(Icons.calendar_today)),
             readOnly: true,
             onTap: () async {
               final date = await showDatePicker(
@@ -206,14 +236,15 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
               );
               if (date != null) {
                 _dobController.text = DateFormat('yyyy-MM-dd').format(date);
-                ref.read(onboardingFormProvider.notifier).updatePersonalDetails(dob: date);
+                final currentRequest = ref.read(currentEditingRequestProvider);
+                ref.read(onboardingFormProvider(currentRequest).notifier).updatePersonalDetails(dob: date);
               }
             },
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: _nationalityController.text.isNotEmpty ? _nationalityController.text : 'Indian',
-            decoration: const InputDecoration(labelText: 'Nationality *'),
+            decoration: _getInputDecoration('Nationality *'),
             items: ['Indian', 'Emirati'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
             onChanged: (val) {
               if (val != null) {
@@ -222,23 +253,24 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
                   _stateController.clear(); // Reset state when nationality changes
                 });
                 // Force update to provider to clear state in backend state as well
-                ref.read(onboardingFormProvider.notifier).updateAddressDetails(addressState: '');
+                final currentRequest = ref.read(currentEditingRequestProvider);
+                ref.read(onboardingFormProvider(currentRequest).notifier).updateAddressDetails(addressState: '');
                 _updateState();
               }
             },
           ),
           const SizedBox(height: 8),
-          TextFormField(controller: _nativePlaceController, decoration: const InputDecoration(labelText: 'Native Place *')),
+          TextFormField(controller: _nativePlaceController, decoration: _getInputDecoration('Native Place *')),
           const SizedBox(height: 8),
-          TextFormField(controller: _educationController, decoration: const InputDecoration(labelText: 'Highest Education *')),
+          TextFormField(controller: _educationController, decoration: _getInputDecoration('Highest Education *')),
           const SizedBox(height: 8),
-          TextFormField(controller: _occupationController, decoration: const InputDecoration(labelText: 'Occupation / Profession *')),
+          TextFormField(controller: _occupationController, decoration: _getInputDecoration('Occupation / Profession *')),
           const SizedBox(height: 8),
-          TextFormField(controller: _monthlyIncomeController, decoration: const InputDecoration(labelText: 'Regular Monthly Income *')),
+          TextFormField(controller: _monthlyIncomeController, decoration: _getInputDecoration('Regular Monthly Income *')),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: _genderController.text.isEmpty ? null : _genderController.text,
-            decoration: const InputDecoration(labelText: 'Gender *'),
+            decoration: _getInputDecoration('Gender *'),
             items: ['Male', 'Female', 'Other'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
             onChanged: (val) {
               if (val != null) {
@@ -250,7 +282,7 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: _maritalStatusController.text.isEmpty ? null : _maritalStatusController.text,
-            decoration: const InputDecoration(labelText: 'Marital Status *'),
+            decoration: _getInputDecoration('Marital Status *'),
             items: ['Single', 'Married', 'Divorced', 'Widowed'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
             onChanged: (val) {
               if (val != null) {
@@ -263,19 +295,19 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
           const SizedBox(height: 24),
           Text('Section C: Residential Address', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
-          TextFormField(controller: _doorNoController, decoration: const InputDecoration(labelText: 'Door / Flat No *')),
+          TextFormField(controller: _doorNoController, decoration: _getInputDecoration('Door / Flat No *')),
           const SizedBox(height: 8),
-          TextFormField(controller: _streetController, decoration: const InputDecoration(labelText: 'Street / Area *')),
+          TextFormField(controller: _streetController, decoration: _getInputDecoration('Street / Area *')),
           const SizedBox(height: 8),
-          TextFormField(controller: _cityController, decoration: const InputDecoration(labelText: 'Town / City / Village *')),
+          TextFormField(controller: _cityController, decoration: _getInputDecoration('Town / City / Village *')),
           const SizedBox(height: 8),
-          TextFormField(controller: _districtController, decoration: const InputDecoration(labelText: 'District *')),
+          TextFormField(controller: _districtController, decoration: _getInputDecoration('District *')),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: _stateController.text.isNotEmpty && (_indianStates.contains(_stateController.text) || _emirates.contains(_stateController.text)) 
                 ? _stateController.text 
                 : null,
-            decoration: const InputDecoration(labelText: 'State / Emirate *'),
+            decoration: _getInputDecoration('State / Emirate *'),
             items: _nationalityController.text == 'Indian'
                 ? _indianStates.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList()
                 : _emirates.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
@@ -287,16 +319,16 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
             },
           ),
           const SizedBox(height: 8),
-          TextFormField(controller: _pincodeController, decoration: const InputDecoration(labelText: 'Pincode *'), keyboardType: TextInputType.number),
+          TextFormField(controller: _pincodeController, decoration: _getInputDecoration('Pincode *'), keyboardType: TextInputType.number),
           const SizedBox(height: 8),
-          TextFormField(controller: _landmarkController, decoration: const InputDecoration(labelText: 'Nearest Landmark')),
+          TextFormField(controller: _landmarkController, decoration: _getInputDecoration('Nearest Landmark')),
           
           const SizedBox(height: 24),
           Text('Section D: Contact Details', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
-          TextFormField(controller: _primaryMobileController, decoration: const InputDecoration(labelText: 'Primary Mobile Number *'), keyboardType: TextInputType.phone),
+          TextFormField(controller: _primaryMobileController, decoration: _getInputDecoration('Primary Mobile Number *'), keyboardType: TextInputType.phone),
           const SizedBox(height: 8),
-          TextFormField(controller: _alternateMobileController, decoration: const InputDecoration(labelText: 'Alternate Mobile Number'), keyboardType: TextInputType.phone),
+          TextFormField(controller: _alternateMobileController, decoration: _getInputDecoration('Alternate Mobile Number'), keyboardType: TextInputType.phone),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -317,14 +349,14 @@ class _StepPersonalContactState extends ConsumerState<StepPersonalContact> {
           ),
           TextFormField(
             controller: _whatsappController, 
-            decoration: const InputDecoration(labelText: 'WhatsApp Number *'), 
+            decoration: _getInputDecoration('WhatsApp Number *'), 
             keyboardType: TextInputType.phone,
             enabled: !_isWhatsappSameAsPrimary,
           ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _emailController, 
-            decoration: const InputDecoration(labelText: 'Email Address *'), 
+            decoration: _getInputDecoration('Email Address *'), 
             keyboardType: TextInputType.emailAddress,
             readOnly: true, // Email is auto-filled and read-only
           ),

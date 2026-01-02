@@ -31,7 +31,8 @@ class DashboardSidebar extends ConsumerWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-            color: Theme.of(context).primaryColor,
+            //dark bg for light mode
+            color: isDark ? Colors.blue : Theme.of(context).primaryColor,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -48,17 +49,17 @@ class DashboardSidebar extends ConsumerWidget {
                 ),
                 Text(
                   userProfileAsync.valueOrNull?['email'] ?? '',
-                  style: GoogleFonts.outfit(color: Colors.white70),
+                  style: GoogleFonts.outfit(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 if (createdAt != null)
                    Text(
                      'Member since: ${DateFormat.yMMMd().format(DateTime.parse(createdAt))}',
-                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.white60),
+                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.white),
                    ),
                  Text(
                    'Login: ${provider.toUpperCase()}',
-                   style: GoogleFonts.outfit(fontSize: 10, color: Colors.white54),
+                   style: GoogleFonts.outfit(fontSize: 10, color: Colors.white70),
                  ),
               ],
             ),
@@ -86,6 +87,30 @@ class DashboardSidebar extends ConsumerWidget {
               context.pop();
               showDialog(context: context, builder: (_) => const SupportDialog());
             },
+          ),
+          Builder(
+            builder: (context) {
+              final profile = userProfileAsync.valueOrNull;
+              final bool hasReferred = profile != null && profile['referred_by'] != null;
+              
+              return ListTile(
+                leading: Icon(
+                  Icons.confirmation_number_outlined, 
+                  color: hasReferred ? Colors.grey : null
+                ),
+                title: Text(
+                  hasReferred ? 'Referral Code (Used)' : 'Referral Code',
+                  style: TextStyle(color: hasReferred ? Colors.grey : null),
+                ),
+                trailing: hasReferred 
+                    ? const Icon(Icons.check_circle, color: Colors.green, size: 20) 
+                    : null,
+                onTap: hasReferred ? null : () {
+                  context.pop();
+                  context.push('/enter-referral');
+                },
+              );
+            }
           ),
           ListTile(
             leading: const Icon(Icons.settings_outlined),

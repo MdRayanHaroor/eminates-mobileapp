@@ -6,15 +6,26 @@ import 'package:investorapp_eminates/models/investor_request.dart';
 import 'package:investorapp_eminates/services/notification_service.dart';
 import 'package:investorapp_eminates/repositories/investor_repository.dart';
 
-final onboardingStepProvider = StateProvider<int>((ref) => 0);
+final onboardingStepProvider = StateProvider.autoDispose.family<int, String?>((ref, requestId) => 0);
 
-final onboardingFormProvider = NotifierProvider<OnboardingFormNotifier, InvestorRequest>(OnboardingFormNotifier.new);
+// Provider to hold the current request being edited (for use by child widgets)
+final currentEditingRequestProvider = StateProvider.autoDispose<InvestorRequest?>((ref) => null);
 
-class OnboardingFormNotifier extends Notifier<InvestorRequest> {
+final onboardingFormProvider = NotifierProvider.autoDispose.family<OnboardingFormNotifier, InvestorRequest, InvestorRequest?>(OnboardingFormNotifier.new);
+
+class OnboardingFormNotifier extends AutoDisposeFamilyNotifier<InvestorRequest, InvestorRequest?> {
   @override
-  InvestorRequest build() {
+  InvestorRequest build(InvestorRequest? initialRequest) {
     final user = ref.watch(currentUserProvider);
+    // If an initial request is provided, use it; otherwise create a new empty one
+    if (initialRequest != null) {
+      return initialRequest;
+    }
     return InvestorRequest(userId: user?.id ?? '');
+  }
+
+  void setRequest(InvestorRequest request) {
+    state = request;
   }
 
   void updatePersonalDetails({
@@ -716,9 +727,5 @@ class OnboardingFormNotifier extends Notifier<InvestorRequest> {
   void resetState() {
     final user = ref.read(currentUserProvider);
     state = InvestorRequest(userId: user?.id ?? '');
-  }
-
-  void setRequest(InvestorRequest request) {
-    state = request;
   }
 }
