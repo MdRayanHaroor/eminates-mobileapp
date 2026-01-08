@@ -71,7 +71,7 @@ BEGIN
     END;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_new_request_admin ON public.investor_requests;
 CREATE TRIGGER on_new_request_admin
@@ -99,7 +99,7 @@ BEGIN
     END;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_utr_submission_admin ON public.investor_requests;
 CREATE TRIGGER on_utr_submission_admin
