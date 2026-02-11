@@ -113,7 +113,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             ),
-            title: Text('Dashboard', 
+            title: Text('EMINATES Dashboard', 
                 style: GoogleFonts.outfit(
                    fontWeight: FontWeight.bold, 
                    color: Colors.white

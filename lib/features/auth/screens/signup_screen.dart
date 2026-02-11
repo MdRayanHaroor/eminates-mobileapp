@@ -81,7 +81,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   const SizedBox(height: 16),
                   
                   Text(
-                    'Join Eminates',
+                    'Join EMINATES',
                     style: GoogleFonts.outfit(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,

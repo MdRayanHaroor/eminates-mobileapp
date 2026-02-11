@@ -215,7 +215,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Sign in to your investor account',
+                        'Sign in to your EMINATES account',
                          style: GoogleFonts.outfit(
                           fontSize: 16,
                           color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
