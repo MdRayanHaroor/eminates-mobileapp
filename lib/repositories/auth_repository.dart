@@ -95,24 +95,35 @@ class AuthRepository {
     }
 
     // Mobile Google Sign In
-    final googleUser = await _googleSignIn.signIn();
-    final googleAuth = await googleUser?.authentication;
-    final accessToken = googleAuth?.accessToken;
-    final idToken = googleAuth?.idToken;
+    try {
+      debugPrint('Attempting Google Sign-In...');
+      final googleUser = await _googleSignIn.signIn();
+      debugPrint('GoogleUser object: $googleUser');
+      final googleAuth = await googleUser?.authentication;
+      final accessToken = googleAuth?.accessToken;
+      final idToken = googleAuth?.idToken;
 
-    if (accessToken == null) {
-      throw 'No Access Token found.';
-    }
-    if (idToken == null) {
-      throw 'No ID Token found.';
-    }
+      debugPrint('AccessToken exists: ${accessToken != null}, IdToken exists: ${idToken != null}');
 
-    final response = await _supabase.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: idToken,
-      accessToken: accessToken,
-    );
-    return response.session != null;
+      if (accessToken == null) {
+        throw 'No Access Token found.';
+      }
+      if (idToken == null) {
+        throw 'No ID Token found.';
+      }
+
+      final response = await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+      debugPrint('Supabase Sign-In result session: ${response.session != null}');
+      return response.session != null;
+    } catch (e, stackTrace) {
+      debugPrint('Exception in signInWithGoogle: $e');
+      debugPrint('StackTrace for signInWithGoogle: $stackTrace');
+      rethrow;
+    }
   }
   
   // Helper to check if user is admin

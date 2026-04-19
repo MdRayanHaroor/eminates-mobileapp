@@ -1,0 +1,10 @@
+create a file in android/key.properties - 
+with values - 
+storePassword=(password)
+keyPassword=(same password)
+keyAlias=upload
+storeFile=upload-keystore.jks
+
+google cloud console - investmentapp-eminates
+firebase - investmentapp-eminates
+supabase - mohammedrayan977@gmail.com - mdrayanharoor's projects - investorapp_eminates

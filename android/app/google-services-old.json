@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "765522021248",
+    "project_id": "eminates-app",
+    "storage_bucket": "eminates-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:765522021248:android:69298df6618301c8ae0f65",
+        "android_client_info": {
+          "package_name": "com.example.investorapp_eminates"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlBCqajurdQeb2dk8icXRc1BuxWJbWG6A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

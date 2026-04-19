@@ -76,7 +76,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 children: [
                   // App Icon / Logo
                   Center(
-                    child: Image.asset('assets/eminates_icon_png.png', width: 80, height: 80),
+                    child: Image.asset('assets/eminates_icon_nobg.png', width: 80, height: 80),
                   ),
                   const SizedBox(height: 16),
                   

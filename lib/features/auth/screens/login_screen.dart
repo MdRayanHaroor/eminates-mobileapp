@@ -199,7 +199,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             shape: BoxShape.circle,
                           ),
                           // using app icon as logo
-                          child: Image.asset('assets/eminates_icon_png.png', width: 40, height: 40),
+                          child: Image.asset('assets/eminates_icon_nobg.png', width: 40, height: 40),
                         ),
                       ),
                       const SizedBox(height: 24),

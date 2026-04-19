@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "765522021248",
-    "project_id": "eminates-app",
-    "storage_bucket": "eminates-app.firebasestorage.app"
+    "project_number": "875988520374",
+    "project_id": "investmentapp-eminates",
+    "storage_bucket": "investmentapp-eminates.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:765522021248:android:69298df6618301c8ae0f65",
+        "mobilesdk_app_id": "1:875988520374:android:945c90b6e7385212128517",
         "android_client_info": {
           "package_name": "com.example.investorapp_eminates"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "875988520374-0m0k8jjqe2efth7n1c96r18c73rqtlhg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.investorapp_eminates",
+            "certificate_hash": "a367989698d936821507ff9c5886424006c43097"
+          }
+        },
+        {
+          "client_id": "875988520374-30d1g6f82ma07jjdhg6rv1p42li63j7d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyBlBCqajurdQeb2dk8icXRc1BuxWJbWG6A"
+          "current_key": "AIzaSyDPPA-vzHfbU8ir1oqZnRRcOtBn5PV2uYg"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "875988520374-30d1g6f82ma07jjdhg6rv1p42li63j7d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

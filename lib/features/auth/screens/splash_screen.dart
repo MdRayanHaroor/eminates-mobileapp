@@ -31,7 +31,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
              Image.asset(
-               'assets/eminates_icon_png.png',
+               'assets/eminates_icon_nobg.png',
                width: 150,
                height: 150,
                errorBuilder: (c,o,s) => const Icon(Icons.flash_on, size: 80, color: Colors.amber),
