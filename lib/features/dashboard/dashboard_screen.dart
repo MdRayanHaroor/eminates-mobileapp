@@ -113,11 +113,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             ),
-            title: Text('EMINATES Dashboard', 
-                style: GoogleFonts.outfit(
-                   fontWeight: FontWeight.bold, 
-                   color: Colors.white
-                )
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  'assets/eminates_icon_nobg.png',
+                  height: 44,
+                  width: 44,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('EMINATES', 
+                          style: GoogleFonts.outfit(
+                             fontWeight: FontWeight.bold, 
+                             color: isDark ? Colors.black : Colors.white,
+                             fontSize: 18,
+                          )
+                      ),
+                      Text('INDUSTRIAL INVESTMENT FORUM', 
+                          style: GoogleFonts.outfit(
+                             fontWeight: FontWeight.w700, 
+                             color: isDark ? Colors.black54 : Colors.white,
+                             fontSize: 10,
+                          )
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             actions: [
                  IconButton(
