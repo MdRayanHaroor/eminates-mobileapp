@@ -70,7 +70,7 @@ class AuthRepository {
   }
 
   GoogleSignIn get _googleSignIn {
-    const webClientId = '875988520374-32oqkpvb4ot15qrdqi0801lgvuqtqhpa.apps.googleusercontent.com';
+    const webClientId = '875988520374-30d1g6f82ma07jjdhg6rv1p42li63j7d.apps.googleusercontent.com';
     const iosClientId = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com';
 
     return GoogleSignIn(

@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "875988520374-gmtlc105lgec8mcido0973laaisfcqiq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.investorapp_eminates",
+            "certificate_hash": "17c027e2ab9edc2cbe22f5c1f3656bcec050925d"
+          }
+        },
+        {
           "client_id": "875988520374-30d1g6f82ma07jjdhg6rv1p42li63j7d.apps.googleusercontent.com",
           "client_type": 3
         }
